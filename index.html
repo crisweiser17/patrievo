@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Evolução Patrimonial</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <header class="text-center mb-8">
+            <h1 class="text-4xl font-bold text-gray-800 mb-2">📈 Evolução Patrimonial</h1>
+            <p class="text-gray-600">Acompanhe sua evolução financeira mensal</p>
+        </header>
+
+        <!-- Controles de Mês/Ano -->
+        <div class="mb-6 bg-white p-4 rounded-lg shadow">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-4">
+                    <label class="text-sm font-medium text-gray-700">Mês/Ano:</label>
+                    <input type="month" id="mesAno" class="border border-gray-300 rounded px-3 py-2">
+                </div>
+                <div class="flex items-center space-x-2">
+                    <span class="text-sm text-gray-600">Cotação USD/BRL:</span>
+                    <span id="cotacaoDolar" class="font-semibold text-green-600">Carregando...</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Resumo Patrimonial -->
+        <div class="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-6">
+            <!-- Card Renda Total -->
+            <div class="bg-white p-6 rounded-lg shadow">
+                <h3 class="text-lg font-semibold text-gray-800 mb-2">💰 Renda Total</h3>
+                <div class="text-2xl font-bold text-green-600" id="rendaTotal">R$ 0,00</div>
+                <div class="text-sm text-gray-600 mt-2">
+                    <div>Alta confiabilidade: <span id="rendaAltaConf">R$ 0,00</span></div>
+                    <div>Baixa confiabilidade: <span id="rendaBaixaConf">R$ 0,00</span></div>
+                    <div>Renda independente: <span id="rendaIndependente">R$ 0,00</span></div>
+                </div>
+            </div>
+
+            <!-- Card Custos -->
+            <div class="bg-white p-6 rounded-lg shadow">
+                <h3 class="text-lg font-semibold text-gray-800 mb-2">💸 Custos Totais</h3>
+                <div class="text-2xl font-bold text-red-600" id="custosTotais">R$ 0,00</div>
+                <div class="text-sm text-gray-600 mt-2" id="breakdownCustos"></div>
+            </div>
+
+            <!-- Card Patrimônio -->
+            <div class="bg-white p-6 rounded-lg shadow">
+                <h3 class="text-lg font-semibold text-gray-800 mb-2">🏦 Patrimônio</h3>
+                <div class="text-2xl font-bold text-blue-600" id="patrimonioTotal">R$ 0,00</div>
+                <div class="text-sm text-gray-600 mt-2">
+                    <div>Investimentos: <span id="investimentosTotal">R$ 0,00</span></div>
+                    <div>Ativos: <span id="ativosTotal">R$ 0,00</span></div>
+                    <div>Passivos: <span id="passivosTotal">R$ 0,00</span></div>
+                </div>
+            </div>
+
+            <!-- Card Independência Financeira -->
+            <div class="bg-white p-6 rounded-lg shadow">
+                <h3 class="text-lg font-semibold text-gray-800 mb-2">🎯 Independência</h3>
+                <div class="text-2xl font-bold" id="fatorIndependencia">0.00</div>
+                <div class="text-sm mt-2" id="statusIndependencia"></div>
+                <div class="text-sm text-gray-600 mt-2">
+                    Renda disponível: <span id="rendaDisponivel">R$ 0,00</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Abas principais -->
+        <div class="bg-white rounded-lg shadow mb-6">
+            <div class="border-b">
+                <nav class="flex -mb-px">
+                    <button class="tab-button active px-6 py-3 text-sm font-medium text-blue-600 border-b-2 border-blue-600" data-tab="receitas">
+                        📥 Receitas
+                    </button>
+                    <button class="tab-button px-6 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 border-b-2 border-transparent" data-tab="custos">
+                        💸 Custos
+                    </button>
+                    <button class="tab-button px-6 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 border-b-2 border-transparent" data-tab="investimentos">
+                        📊 Investimentos
+                    </button>
+                    <button class="tab-button px-6 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 border-b-2 border-transparent" data-tab="ativos-passivos">
+                        🏠 Ativos & Passivos
+                    </button>
+                </nav>
+            </div>
+
+            <!-- Conteúdo das abas -->
+            <div class="p-6">
+                <!-- Aba Receitas -->
+                <div id="receitas" class="tab-content active">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-xl font-semibold">Receitas</h2>
+                        <div class="flex items-center gap-2">
+                            <button class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700" onclick="abrirModalReceita()">
+                                + Nova Receita
+                            </button>
+                            <button class="bg-orange-500 text-white px-3 py-2 rounded hover:bg-orange-600" title="Gerir categorias" onclick="abrirModalCategoriasReceita()">
+                                <!-- Ícone de engrenagem simples -->
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5">
+                                    <path d="M11.983 1.447a1 1 0 00-1.966 0l-.146.733a7.977 7.977 0 00-1.53.885l-.62-.36a1 1 0 00-1.366.366l-.983 1.703a1 1 0 00.366 1.366l.62.36c-.125.5-.212 1.023-.257 1.561l-.733.146a1 1 0 000 1.966l.733.146c.045.538.132 1.06.257 1.561l-.62.36a1 1 0 00-.366 1.366l.983 1.703a1 1 0 001.366.366l.62-.36c.48.343.99.63 1.53.885l.146.733a1 1 0 001.966 0l.146-.733a7.977 7.977 0 001.53-.885l.62.36a1 1 0 001.366-.366l.983-1.703a1 1 0 00-.366-1.366l-.62-.36c.125-.5.212-1.023.257-1.561l.733-.146a1 1 0 000-1.966l-.733-.146a9.007 9.007 0 00-.257-1.561l.62-.36a1 1 0 00.366-1.366l-.983-1.703a1 1 0 00-1.366-.366l-.62.36a7.977 7.977 0 00-1.53-.885l-.146-.733zM10 12a2 2 0 110-4 2 2 0 010 4z" />
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                    <div id="listaReceitas" class="space-y-3"></div>
+                    <div class="mt-4 pt-4 border-t">
+                        <div class="flex justify-between text-lg font-semibold">
+                            <span>Total:</span>
+                            <span id="totalReceitas">R$ 0,00</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Gráfico de Evolução de Receitas -->
+                    <div class="mt-6 bg-gray-50 p-4 rounded-lg">
+                        <h3 class="text-lg font-semibold mb-4">📊 Evolução de Receitas (12 meses)</h3>
+                        <div class="relative h-64">
+                            <canvas id="graficoReceitas" class="w-full h-full"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Aba Custos -->
+                <div id="custos" class="tab-content hidden">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-xl font-semibold">Custos</h2>
+                        <div class="flex items-center gap-2">
+                            <button class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700" onclick="abrirModalCusto()">
+                                + Novo Custo
+                            </button>
+                            <button class="bg-orange-500 text-white px-3 py-2 rounded hover:bg-orange-600" title="Gerir centros de custos" onclick="abrirModalCentrosCusto()">
+                                <!-- Ícone de engrenagem simples -->
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5">
+                                    <path d="M11.983 1.447a1 1 0 00-1.966 0l-.146.733a7.977 7.977 0 00-1.53.885l-.62-.36a1 1 0 00-1.366.366l-.983 1.703a1 1 0 00.366 1.366l.62.36c-.125.5-.212 1.023-.257 1.561l-.733.146a1 1 0 000 1.966l.733.146c.045.538.132 1.06.257 1.561l-.62.36a1 1 0 00-.366 1.366l.983 1.703a1 1 0 001.366.366l.62-.36c.48.343.99.63 1.53.885l.146.733a1 1 0 001.966 0l.146-.733a7.977 7.977 0 001.53-.885l.62.36a1 1 0 001.366-.366l.983-1.703a1 1 0 00-.366-1.366l-.62-.36c.125-.5.212-1.023.257-1.561l.733-.146a1 1 0 000-1.966l-.733-.146a9.007 9.007 0 00-.257-1.561l.62-.36a1 1 0 00.366-1.366l-.983-1.703a1 1 0 00-1.366-.366l-.62.36a7.977 7.977 0 00-1.53-.885l-.146-.733zM10 12a2 2 0 110-4 2 2 0 010 4z" />
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                    <div id="listaCustos" class="space-y-3"></div>
+                    <div class="mt-4 pt-4 border-t">
+                        <div class="flex justify-between text-lg font-semibold">
+                            <span>Total:</span>
+                            <span id="totalCustos">R$ 0,00</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Gráfico de Evolução de Custos -->
+                    <div class="mt-6 bg-gray-50 p-4 rounded-lg">
+                        <h3 class="text-lg font-semibold mb-4">📊 Evolução de Custos (12 meses)</h3>
+                        <div class="relative h-64">
+                            <canvas id="graficoCustos" class="w-full h-full"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Aba Investimentos -->
+                <div id="investimentos" class="tab-content hidden">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-xl font-semibold">Investimentos</h2>
+                        <button class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700" onclick="abrirModalInvestimento()">
+                            + Novo Investimento
+                        </button>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full bg-white">
+                            <thead>
+                                <tr class="bg-gray-50">
+                                    <th class="px-4 py-2 text-left">Instituição</th>
+                                    <th class="px-4 py-2 text-right">Saldo BRL</th>
+                                    <th class="px-4 py-2 text-right">Saldo USD</th>
+                                    <th class="px-4 py-2 text-right">Rendimento (%)</th>
+                                    <th class="px-4 py-2 text-right">Rendimento (R$)</th>
+                                    <th class="px-4 py-2 text-left">Liquidez</th>
+                                    <th class="px-4 py-2 text-left">Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody id="listaInvestimentos">
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="mt-4 pt-4 border-t grid grid-cols-2 gap-4">
+                        <div>
+                            <div class="text-sm text-gray-600">Soma Saldos BRL: <span id="somaSaldosBRL" class="font-semibold">R$ 0,00</span></div>
+                            <div class="text-sm text-gray-600">Soma Saldos USD: <span id="somaSaldosUSD" class="font-semibold">$ 0,00</span></div>
+                            <div class="text-sm text-gray-600">Soma Total: <span id="somaTotal" class="font-semibold">R$ 0,00</span></div>
+                        </div>
+                        <div>
+                            <div class="text-sm text-gray-600">Soma Rendimentos: <span id="somaRendimentos" class="font-semibold">R$ 0,00</span></div>
+                            <div class="text-sm text-gray-600">Média % Rendimentos: <span id="mediaRendimentos" class="font-semibold">0.00%</span></div>
+                        </div>
+                    </div>
+                    
+                    <!-- Gráfico de Evolução Patrimonial (apenas para Investimentos) -->
+                    <div class="mt-6 bg-gray-50 p-4 rounded-lg">
+                        <h3 class="text-lg font-semibold mb-4">📈 Evolução Patrimonial</h3>
+                        <div class="relative h-64">
+                            <canvas id="graficoEvolucao" class="w-full h-full"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Aba Ativos & Passivos -->
+                <div id="ativos-passivos" class="tab-content hidden">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <!-- Ativos -->
+                        <div>
+                            <div class="flex justify-between items-center mb-4">
+                                <h2 class="text-xl font-semibold">Ativos</h2>
+                                <button class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700" onclick="abrirModalAtivo()">
+                                    + Novo Ativo
+                                </button>
+                            </div>
+                            <div id="listaAtivos" class="space-y-3"></div>
+                            <div class="mt-4 pt-4 border-t">
+                                <div class="flex justify-between text-lg font-semibold">
+                                    <span>Total Ativos:</span>
+                                    <span id="totalAtivos" class="text-green-600">R$ 0,00</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Passivos -->
+                        <div>
+                            <div class="flex justify-between items-center mb-4">
+                                <h2 class="text-xl font-semibold">Passivos</h2>
+                                <button class="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700" onclick="abrirModalPassivo()">
+                                    + Novo Passivo
+                                </button>
+                            </div>
+                            <div id="listaPassivos" class="space-y-3"></div>
+                            <div class="mt-4 pt-4 border-t">
+                                <div class="flex justify-between text-lg font-semibold">
+                                    <span>Total Passivos:</span>
+                                    <span id="totalPassivos" class="text-red-600">R$ 0,00</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Gráfico de Ativos e Passivos -->
+                    <div class="mt-6 bg-gray-50 p-4 rounded-lg">
+                        <h3 class="text-lg font-semibold mb-4">📊 Evolução de Ativos e Passivos (12 meses)</h3>
+                        <div class="relative h-64">
+                            <canvas id="graficoAtivosPassivos" class="w-full h-full"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modais -->
+    <div id="modalOverlay" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50">
+        <div id="modalContent" class="bg-white rounded-lg p-6 max-w-md mx-auto mt-20">
+            <!-- Conteúdo dos modais será injetado aqui -->
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
