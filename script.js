@@ -2,7 +2,7 @@
 
 // Estado global da aplicação
 let estado = {
-    mesAno: new Date().toISOString().slice(0, 7), // Formato YYYY-MM
+    mesAno: `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`,
     cotacaoDolar: 5.0,
     receitas: [],
     custos: [],
@@ -61,7 +61,7 @@ async function criarDadosExemplo() {
         const hoje = new Date();
         for (let i = 0; i < 12; i++) {
             const data = new Date(hoje.getFullYear(), hoje.getMonth() - i, 1);
-            const mesAno = data.toISOString().slice(0, 7);
+            const mesAno = `${data.getFullYear()}-${String(data.getMonth() + 1).padStart(2, '0')}`;
             
             for (const exemplo of dadosExemplo) {
                 const dadoMes = { ...exemplo, mes_ano: mesAno };
@@ -140,7 +140,7 @@ function configurarEventos() {
             navegarMes(1);
         });
     }
-    
+
     // Fechar modal
     const modalOverlayElement = document.getElementById('modalOverlay');
     if (modalOverlayElement) {
@@ -148,6 +148,15 @@ function configurarEventos() {
             if (e.target === this) {
                 fecharModal();
             }
+        });
+    }
+
+    // Link para Evolução Financeira
+    const linkEvolucao = document.getElementById('linkEvolucaoFinanceira');
+    if (linkEvolucao) {
+        linkEvolucao.addEventListener('click', function(e) {
+            e.preventDefault();
+            abrirModalEvolucaoFinanceira();
         });
     }
 }
@@ -928,11 +937,12 @@ function navegarMes(direcao) {
 // API - Simulação de backend
 async function apiRequest(endpoint, method = 'GET', data = null) {
     try {
-        // Anexar mes_ano apenas em requisições GET
-        const url = method === 'GET'
-            // Usar 'mesAno' para compatibilidade com o roteador index.php
-            ? `api/${endpoint}?mesAno=${estado.mesAno}`
-            : `api/${endpoint}`;
+        // Sempre anexar mesAno quando usando endpoints sem .php (roteador index.php)
+        const isPhpEndpoint = endpoint.includes('.php');
+        const base = `api/${endpoint}`;
+        const url = isPhpEndpoint
+            ? base
+            : `${base}${base.includes('?') ? '&' : '?'}mesAno=${estado.mesAno}`;
         
         const response = await fetch(url, {
             method: method,
@@ -1722,6 +1732,7 @@ let graficoPatrimonio = null;
 let graficoReceitas = null;
 let graficoCustos = null;
 let graficoAtivosPassivos = null;
+let graficoEvolucaoFinanceira = null;
 
 // Detecta dinamicamente o último mês com dados em qualquer categoria
 async function obterMesBaseGlobal() {
@@ -1733,7 +1744,7 @@ async function obterMesBaseGlobal() {
     // Procura do mês atual para trás até 24 meses
     for (let i = 0; i < 24; i++) {
         const data = new Date(hoje.getFullYear(), hoje.getMonth() - i, 1);
-        const mesAno = data.toISOString().slice(0, 7);
+        const mesAno = `${data.getFullYear()}-${String(data.getMonth() + 1).padStart(2, '0')}`;
         try {
             let temDados = false;
             for (const ep of endpoints) {
@@ -1775,7 +1786,7 @@ async function obterUltimoMesComDados(endpoints, preferMesAno = null) {
     // Busca do mês atual para trás (24 meses)
     for (let i = 0; i < 24; i++) {
         const data = new Date(hoje.getFullYear(), hoje.getMonth() - i, 1);
-        const mesAno = data.toISOString().slice(0, 7);
+        const mesAno = `${data.getFullYear()}-${String(data.getMonth() + 1).padStart(2, '0')}`;
         for (const ep of eps) {
             const itens = await carregarDadosMesEspecifico(ep, mesAno);
             if (Array.isArray(itens) && itens.length > 0) {
@@ -2243,6 +2254,237 @@ function fecharModal() {
     content.innerHTML = '';
 }
 
+// Modal: Evolução Financeira
+async function abrirModalEvolucaoFinanceira() {
+    const baseMes = estado.mesAno; // usar o mês selecionado na UI
+    console.log('🗓️ Base do histórico (Evolução Financeira):', baseMes);
+    const mesesMax = 36;
+    const historico = await carregarIndicadoresHistoricos(mesesMax, baseMes);
+
+    const conteudo = `
+        <div class="evo-modal-header" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+            <h2 class="text-xl font-semibold">Evolução Financeira</h2>
+            <button class="text-gray-500 hover:text-gray-700" onclick="fecharModal()">✖️</button>
+        </div>
+        <div class="evo-controls" style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-bottom:12px;">
+            <div style="display:flex;align-items:center;gap:8px;">
+                <label class="text-sm text-gray-700">Métrica:</label>
+                <select id="metricSelect" class="border border-gray-300 rounded px-2 py-1 text-sm">
+                    <option value="renda_total">💰 Renda Total</option>
+                    <option value="custo_total">💸 Custos Totais</option>
+                    <option value="renda_disponivel">🟢 Renda Disponível</option>
+                    <option value="rendimento_total">📈 Renda de Investimentos</option>
+                    <option value="renda_independente">🏖️ Renda Sem Emprego</option>
+                </select>
+            </div>
+            <div class="period" style="display:flex;align-items:center;gap:8px;">
+                <span class="text-sm text-gray-700">Período:</span>
+                ${[3,6,12,24,36].map(n => `<button class="px-2 py-1 text-sm rounded border" onclick="setPeriodoEvolucaoFinanceira(${n})">${n}m</button>`).join('')}
+            </div>
+        </div>
+        <div class="evo-grid" style="display:grid;grid-template-columns:1fr;gap:12px;">
+            <div class="evo-chart" style="background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:8px;height:320px;">
+                <canvas id="graficoEvolucaoFinanceiraCanvas" style="width:100%;height:100%;"></canvas>
+            </div>
+            <div class="evo-table" style="background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:8px;max-height:320px;overflow:auto;">
+                <h3 id="labelPeriodoTabela" class="text-sm font-semibold mb-2">Últimos 12 meses</h3>
+                <div id="tabelaEvolucaoFinanceira" class="overflow-x-auto"></div>
+            </div>
+        </div>
+        <style>
+            @media (min-width: 768px) {
+                .evo-grid { grid-template-columns: 1fr 1fr; }
+            }
+        </style>
+    `;
+    abrirModal(conteudo);
+
+    // Limitar altura do modal e habilitar rolagem
+    const contentEl = document.getElementById('modalContent');
+    if (contentEl) {
+        contentEl.style.maxHeight = '80vh';
+        contentEl.style.overflow = 'auto';
+        contentEl.style.width = '90vw';
+        contentEl.style.maxWidth = '1200px';
+    }
+
+    // Renderizar gráfico e tabela
+    window.__historicoIndicadores__ = historico; // cache no escopo global
+    window.__periodoEvolucao__ = 12;
+    window.__metricEvolucao__ = 'renda_total';
+
+    inicializarGraficoEvolucaoFinanceira();
+    atualizarGraficoEvolucaoFinanceira();
+    const periodoInicial = window.__periodoEvolucao__ || 12;
+    montarTabelaEvolucaoFinanceira(historico.slice(0, periodoInicial), periodoInicial);
+
+    // Eventos
+    const metricSelect = document.getElementById('metricSelect');
+    if (metricSelect) {
+        metricSelect.addEventListener('change', function() {
+            window.__metricEvolucao__ = this.value;
+            atualizarGraficoEvolucaoFinanceira();
+        });
+    }
+}
+
+function inicializarGraficoEvolucaoFinanceira() {
+    const ctx = document.getElementById('graficoEvolucaoFinanceiraCanvas');
+    if (!ctx) return;
+    if (graficoEvolucaoFinanceira) {
+        graficoEvolucaoFinanceira.destroy();
+    }
+    graficoEvolucaoFinanceira = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: [],
+            datasets: [{
+                label: 'Evolução',
+                data: [],
+                borderColor: '#2563EB',
+                backgroundColor: 'rgba(37, 99, 235, 0.15)',
+                tension: 0.3,
+                fill: true,
+                pointRadius: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: (ctx) => formatarMoeda(ctx.parsed.y)
+                    }
+                }
+            },
+            scales: {
+                x: { title: { display: false } },
+                y: { title: { display: false }, beginAtZero: true }
+            },
+            animation: {
+                duration: 600,
+                easing: 'easeInOutQuart'
+            }
+        }
+    });
+}
+
+window.setPeriodoEvolucaoFinanceira = function(n) {
+    window.__periodoEvolucao__ = n;
+    atualizarGraficoEvolucaoFinanceira();
+    const historico = window.__historicoIndicadores__ || [];
+    montarTabelaEvolucaoFinanceira(historico.slice(0, n), n);
+};
+
+function atualizarGraficoEvolucaoFinanceira() {
+    const historico = window.__historicoIndicadores__ || [];
+    const periodo = window.__periodoEvolucao__ || 12;
+    const metric = window.__metricEvolucao__ || 'renda_total';
+
+    const slice = historico.slice(0, periodo).reverse(); // mais antigos -> recentes
+    if (slice.length && slice[slice.length - 1]) {
+        console.log('📅 Último mês do período atual (deve ser o selecionado):', slice[slice.length - 1].mesAno);
+    }
+    const labels = slice.map(item => formatarMesAno(item.mesAno));
+    const dados = slice.map(item => (item.indicadores?.[metric]) || 0);
+
+    const nomeMetric = {
+        renda_total: '💰 Renda Total',
+        custo_total: '💸 Custos Totais',
+        renda_disponivel: '🟢 Renda Disponível',
+        rendimento_total: '📈 Renda de Investimentos',
+        renda_independente: '🏖️ Renda Sem Emprego'
+    }[metric] || 'Evolução';
+
+    if (graficoEvolucaoFinanceira) {
+        graficoEvolucaoFinanceira.data.labels = labels;
+        graficoEvolucaoFinanceira.data.datasets[0].data = dados;
+        graficoEvolucaoFinanceira.data.datasets[0].label = nomeMetric;
+        // Apenas custos em vermelho; demais permanecem azuis
+        const isCusto = metric === 'custo_total';
+        graficoEvolucaoFinanceira.data.datasets[0].borderColor = isCusto ? '#DC3545' : '#2563EB';
+        graficoEvolucaoFinanceira.data.datasets[0].backgroundColor = isCusto ? 'rgba(220, 53, 69, 0.15)' : 'rgba(37, 99, 235, 0.15)';
+        graficoEvolucaoFinanceira.update();
+    }
+}
+
+function montarTabelaEvolucaoFinanceira(historicoPeriodo, periodo) {
+    const container = document.getElementById('tabelaEvolucaoFinanceira');
+    if (!container) return;
+    // Ordenar do mais recente para o mais antigo
+    const ordenado = [...historicoPeriodo].sort((a, b) => (a.mesAno < b.mesAno ? 1 : -1));
+    const linhas = ordenado.map(item => {
+        const ind = item.indicadores || {};
+        const isAtual = item.mesAno === estado.mesAno;
+        return `<tr>
+            <td class="px-2 py-1 text-sm text-gray-600 ${isAtual ? 'font-semibold text-blue-700' : ''}">
+                ${formatarMesAno(item.mesAno)} ${isAtual ? '<span class="ml-1 text-xs bg-blue-100 text-blue-700 px-1 rounded">Atual</span>' : ''}
+            </td>
+            <td class="px-2 py-1 text-right">${formatarMoeda(ind.renda_total || 0)}</td>
+            <td class="px-2 py-1 text-right">${formatarMoeda(ind.custo_total || 0)}</td>
+            <td class="px-2 py-1 text-right">${formatarMoeda(ind.renda_disponivel || 0)}</td>
+            <td class="px-2 py-1 text-right">${formatarMoeda(ind.rendimento_total || 0)}</td>
+            <td class="px-2 py-1 text-right">${formatarMoeda(ind.renda_independente || 0)}</td>
+        </tr>`;
+    }).join('');
+    const label = document.getElementById('labelPeriodoTabela');
+    if (label) label.textContent = `Últimos ${periodo} meses (inclui mês atual)`;
+    container.innerHTML = `
+        <table class="min-w-full bg-white border" style="width:100%;border-collapse:collapse;">
+            <thead style="position:sticky;top:0;background:#f9fafb;z-index:1;">
+                <tr class="bg-gray-50 text-left text-sm">
+                    <th class="px-2 py-1">Mês</th>
+                    <th class="px-2 py-1">💰 Renda Total</th>
+                    <th class="px-2 py-1">💸 Custos Totais</th>
+                    <th class="px-2 py-1">🟢 Renda Disponível</th>
+                    <th class="px-2 py-1">📈 Renda de Investimentos</th>
+                    <th class="px-2 py-1">🏖️ Renda Sem Emprego</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${linhas}
+            </tbody>
+        </table>
+    `;
+}
+
+async function carregarIndicadoresHistoricos(maxMeses = 12, baseMesAno = null) {
+    // Construir data base no fuso local a partir de ano/mês, evitando parsing UTC
+    const hoje = (() => {
+        if (!baseMesAno) return new Date();
+        const [anoStr, mesStr] = baseMesAno.split('-');
+        const ano = parseInt(anoStr, 10);
+        const mes = parseInt(mesStr, 10) - 1; // 0-based
+        return new Date(ano, mes, 1);
+    })();
+    const historico = [];
+    for (let i = 0; i < maxMeses; i++) {
+        const d = new Date(hoje.getFullYear(), hoje.getMonth() - i, 1);
+        const mesAno = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+        try {
+            const resp = await fetch(`api/dashboard.php?mes_ano=${mesAno}`);
+            const json = await resp.json();
+            const ind = json && json.indicadores ? json.indicadores : {};
+            // Normalizar para números (evita strings vindas do PHP/JSON)
+            const normalizados = {
+                renda_total: parseFloat(ind.renda_total) || 0,
+                custo_total: parseFloat(ind.custo_total) || 0,
+                renda_disponivel: parseFloat(ind.renda_disponivel) || 0,
+                rendimento_total: parseFloat(ind.rendimento_total) || 0,
+                renda_independente: parseFloat(ind.renda_independente) || 0
+            };
+            historico.push({ mesAno, indicadores: normalizados });
+            console.log('🔎 Evolução -', mesAno, normalizados);
+        } catch (e) {
+            console.warn('Falha ao obter indicadores de', mesAno, e);
+            historico.push({ mesAno, indicadores: {} });
+        }
+    }
+    return historico;
+}
+
 // Modais de criação
 function abrirModalReceita() {
     abrirModal(`
@@ -2306,6 +2548,8 @@ function abrirModalReceita() {
                 categoria: document.getElementById('rec_categoria').value,
                 valor: parseFloat(document.getElementById('rec_valor').value || '0'),
                 moeda: document.getElementById('rec_moeda').value,
+                // Frequência fixa por enquanto
+                frequencia: 'mensal',
                 confiabilidade: document.getElementById('rec_conf').value,
                 notas: document.getElementById('rec_notas').value || '',
                 mes_ano: document.getElementById('rec_mes_referencia').value
@@ -2577,28 +2821,30 @@ async function apagarCategoriaReceita(categoria, destino) {
 function abrirModalCategoriasReceita() {
     const categorias = getCategoriasReceita();
     abrirModal(`
-        <h3 class="text-lg font-semibold mb-4">Gerir Categorias de Receita</h3>
-        <div id="listaCategorias" class="space-y-2 mb-4">
-            ${categorias.map(c => `
-            <div class="flex items-center justify-between p-2 border rounded">
-                <span class="font-medium">${c}</span>
-                <div class="space-x-2">
-                    <button class="text-blue-600 hover:text-blue-800 text-sm" data-cat="${c}" onclick="handleEditarCategoria('${c}')">Editar</button>
-                    <button class="text-red-600 hover:text-red-800 text-sm" data-cat="${c}" onclick="handleApagarCategoria('${c}')">Apagar</button>
+        <div class="h-[70vh] overflow-y-auto">
+            <h3 class="text-base font-semibold mb-3">Gerir Categorias de Receita</h3>
+            <div id="listaCategorias" class="grid grid-cols-2 gap-2 mb-3">
+                ${categorias.map(c => `
+                <div class="flex items-center justify-between p-2 border rounded">
+                    <span class="font-medium text-sm">${c}</span>
+                    <div class="space-x-2">
+                        <button class="text-blue-600 hover:text-blue-800 text-sm" data-cat="${c}" onclick="handleEditarCategoria('${c}')">Editar</button>
+                        <button class="text-red-600 hover:text-red-800 text-sm" data-cat="${c}" onclick="handleApagarCategoria('${c}')">Apagar</button>
+                    </div>
+                </div>`).join('')}
+            </div>
+            <form id="formAddCat" class="space-y-2">
+                <div>
+                    <label class="form-label">Nova categoria</label>
+                    <input type="text" id="novaCategoria" class="form-input" placeholder="Ex.: salário/emprego" required>
                 </div>
-            </div>`).join('')}
+                <div class="sticky bottom-0 bg-white pt-2 mt-2 border-t flex justify-end gap-2">
+                    <button type="button" class="btn bg-gray-200" onclick="fecharModal()">Fechar</button>
+                    <button type="submit" class="btn bg-blue-600 text-white">Adicionar</button>
+                </div>
+            </form>
+            <div id="areaConfirmacao" class="mt-2 hidden"></div>
         </div>
-        <form id="formAddCat" class="space-y-3">
-            <div>
-                <label class="form-label">Nova categoria</label>
-                <input type="text" id="novaCategoria" class="form-input" placeholder="Ex.: salário/emprego" required>
-            </div>
-            <div class="flex justify-end gap-2">
-                <button type="button" class="btn bg-gray-200" onclick="fecharModal()">Fechar</button>
-                <button type="submit" class="btn bg-blue-600 text-white">Adicionar</button>
-            </div>
-        </form>
-        <div id="areaConfirmacao" class="mt-4 hidden"></div>
     `);
 
     const formAdd = document.getElementById('formAddCat');
@@ -2688,7 +2934,15 @@ async function renomearCentroCusto(antigo, novo) {
         try {
             for (const custo of estado.custos) {
                 if (custo.centroCusto === novo || custo.centro_custo === novo) {
-                    await apiRequest(`custos/${custo.id}`, 'PUT', custo);
+                    const payload = {
+                        nome: custo.nome,
+                        valor: custo.valor,
+                        moeda: custo.moeda,
+                        centro_custo: novo,
+                        notas: custo.notas || '',
+                        mes_ano: custo.mes_ano || estado.mesAno
+                    };
+                    await apiRequest(`custos.php?id=${custo.id}`, 'PUT', payload);
                 }
             }
         } catch (e) {
@@ -2715,34 +2969,55 @@ async function apagarCentroCusto(centro, destino) {
             }
         });
         salvarDadosLocais('custos', estado.custos);
+
+        // Persistir atualização no servidor
+        try {
+            for (const custo of estado.custos) {
+                if (custo.centroCusto === destino || custo.centro_custo === destino) {
+                    const payload = {
+                        nome: custo.nome,
+                        valor: custo.valor,
+                        moeda: custo.moeda,
+                        centro_custo: destino,
+                        notas: custo.notas || '',
+                        mes_ano: custo.mes_ano || estado.mesAno
+                    };
+                    await apiRequest(`custos.php?id=${custo.id}`, 'PUT', payload);
+                }
+            }
+        } catch (e) {
+            console.warn('Erro ao persistir migração de centro no servidor:', e);
+        }
     }
 }
 
 function abrirModalCentrosCusto() {
     const centros = getCentrosCusto();
     abrirModal(`
-        <h3 class="text-lg font-semibold mb-4">Gerir Centros de Custo</h3>
-        <div id="listaCentros" class="space-y-2 mb-4">
-            ${centros.map(centro => `
-            <div class="flex items-center justify-between p-2 border rounded">
-                <span class="font-medium">${centro}</span>
-                <div class="space-x-2">
-                    <button class="text-blue-600 hover:text-blue-800 text-sm" onclick="handleEditarCentro('${centro}')">Editar</button>
-                    <button class="text-red-600 hover:text-red-800 text-sm" onclick="handleApagarCentro('${centro}')">Apagar</button>
+        <div class="h-[70vh] overflow-y-auto">
+            <h3 class="text-base font-semibold mb-3">Gerir Centros de Custo</h3>
+            <div id="listaCentros" class="grid grid-cols-2 gap-2 mb-3">
+                ${centros.map(centro => `
+                <div class="flex items-center justify-between p-2 border rounded">
+                    <span class="font-medium text-sm">${centro}</span>
+                    <div class="space-x-2">
+                        <button class="text-blue-600 hover:text-blue-800 text-sm" onclick="handleEditarCentro('${centro}')">Editar</button>
+                        <button class="text-red-600 hover:text-red-800 text-sm" onclick="handleApagarCentro('${centro}')">Apagar</button>
+                    </div>
+                </div>`).join('')}
+            </div>
+            <form id="formAddCentro" class="space-y-2">
+                <div>
+                    <label class="form-label">Novo Centro de Custo</label>
+                    <input type="text" id="novoCentro" class="form-input" placeholder="Ex.: administrativo, operação" required>
                 </div>
-            </div>`).join('')}
+                <div class="sticky bottom-0 bg-white pt-2 mt-2 border-t flex justify-end gap-2">
+                    <button type="button" class="btn bg-gray-200" onclick="fecharModal()">Fechar</button>
+                    <button type="submit" class="btn bg-blue-600 text-white">Adicionar</button>
+                </div>
+            </form>
+            <div id="areaConfirmacaoCentro" class="mt-2 hidden"></div>
         </div>
-        <form id="formAddCentro" class="space-y-3">
-            <div>
-                <label class="form-label">Novo Centro de Custo</label>
-                <input type="text" id="novoCentro" class="form-input" placeholder="Ex.: administrativo, operação" required>
-            </div>
-            <div class="flex justify-end gap-2">
-                <button type="button" class="btn bg-gray-200" onclick="fecharModal()">Fechar</button>
-                <button type="submit" class="btn bg-blue-600 text-white">Adicionar</button>
-            </div>
-        </form>
-        <div id="areaConfirmacaoCentro" class="mt-4 hidden"></div>
     `);
 
     const formAddCentro = document.getElementById('formAddCentro');
@@ -2791,7 +3066,7 @@ window.handleApagarCentro = function(centro) {
         alert('Deve existir pelo menos um centro de custo!');
         return;
     }
-    const afetados = (estado.custos || []).filter(c => c.centro === centro);
+    const afetados = (estado.custos || []).filter(c => (c.centroCusto || c.centro_custo) === centro);
     const area = document.getElementById('areaConfirmacaoCentro');
     if (!area) return;
     const outros = centros.filter(c => c !== centro);
