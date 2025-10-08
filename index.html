@@ -20,7 +20,13 @@
             <div class="flex items-center justify-between">
                 <div class="flex items-center space-x-4">
                     <label class="text-sm font-medium text-gray-700">Mês/Ano:</label>
-                    <input type="month" id="mesAno" class="border border-gray-300 rounded px-3 py-2">
+                    <div class="flex items-center gap-2">
+                        <select id="mesSelect" class="border border-gray-300 rounded px-3 py-2"></select>
+                        <select id="anoSelect" class="border border-gray-300 rounded px-3 py-2"></select>
+                        <!-- Hidden para compatibilidade com a lógica existente -->
+                        <input type="month" id="mesAno" class="hidden">
+
+                    </div>
                 </div>
                 <div class="flex items-center space-x-2">
                     <span class="text-sm text-gray-600">Cotação USD/BRL:</span>
@@ -60,13 +66,15 @@
                 </div>
             </div>
 
-            <!-- Card Independência Financeira -->
+            <!-- Card Insights -->
             <div class="bg-white p-6 rounded-lg shadow">
-                <h3 class="text-lg font-semibold text-gray-800 mb-2">🎯 Independência</h3>
-                <div class="text-2xl font-bold" id="fatorIndependencia">0.00</div>
-                <div class="text-sm mt-2" id="statusIndependencia"></div>
-                <div class="text-sm text-gray-600 mt-2">
-                    Renda disponível: <span id="rendaDisponivel">R$ 0,00</span>
+                <h3 class="text-lg font-semibold text-gray-800 mb-2">🧠 Insights</h3>
+                <div class="space-y-2 text-sm text-gray-700">
+                    <div>💰 Renda Total: <span id="insightsRendaTotal">R$ 0,00</span></div>
+                    <div>💸 Custos Totais: <span id="insightsCustosTotais">R$ 0,00</span></div>
+                    <div>🟢 Renda Disponível: <span id="insightsRendaDisponivel">R$ 0,00</span></div>
+                    <div>📈 Renda de Investimentos: <span id="rendaInvestimentos">R$ 0,00</span></div>
+                    <div>🏖️ Renda Sem Emprego: <span id="rendaSemEmprego">R$ 0,00</span></div>
                 </div>
             </div>
         </div>
@@ -100,12 +108,10 @@
                             <button class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700" onclick="abrirModalReceita()">
                                 + Nova Receita
                             </button>
-                            <button class="bg-orange-500 text-white px-3 py-2 rounded hover:bg-orange-600" title="Gerir categorias" onclick="abrirModalCategoriasReceita()">
-                                <!-- Ícone de engrenagem simples -->
-                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5">
-                                    <path d="M11.983 1.447a1 1 0 00-1.966 0l-.146.733a7.977 7.977 0 00-1.53.885l-.62-.36a1 1 0 00-1.366.366l-.983 1.703a1 1 0 00.366 1.366l.62.36c-.125.5-.212 1.023-.257 1.561l-.733.146a1 1 0 000 1.966l.733.146c.045.538.132 1.06.257 1.561l-.62.36a1 1 0 00-.366 1.366l.983 1.703a1 1 0 001.366.366l.62-.36c.48.343.99.63 1.53.885l.146.733a1 1 0 001.966 0l.146-.733a7.977 7.977 0 001.53-.885l.62.36a1 1 0 001.366-.366l.983-1.703a1 1 0 00-.366-1.366l-.62-.36c.125-.5.212-1.023.257-1.561l.733-.146a1 1 0 000-1.966l-.733-.146a9.007 9.007 0 00-.257-1.561l.62-.36a1 1 0 00.366-1.366l-.983-1.703a1 1 0 00-1.366-.366l-.62.36a7.977 7.977 0 00-1.53-.885l-.146-.733zM10 12a2 2 0 110-4 2 2 0 010 4z" />
-                                </svg>
+                            <button class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700" onclick="copiarReceitasMesAnterior()">
+                                📋 Copiar Mês Anterior
                             </button>
+                            <button class="px-3 py-2 rounded border border-gray-300 bg-white text-gray-700 hover:bg-gray-100 shadow-sm" title="Gerir categorias" aria-label="Gerir categorias" onclick="abrirModalCategoriasReceita()">⚙️</button>
                         </div>
                     </div>
                     <div id="listaReceitas" class="space-y-3"></div>
@@ -133,12 +139,10 @@
                             <button class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700" onclick="abrirModalCusto()">
                                 + Novo Custo
                             </button>
-                            <button class="bg-orange-500 text-white px-3 py-2 rounded hover:bg-orange-600" title="Gerir centros de custos" onclick="abrirModalCentrosCusto()">
-                                <!-- Ícone de engrenagem simples -->
-                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5">
-                                    <path d="M11.983 1.447a1 1 0 00-1.966 0l-.146.733a7.977 7.977 0 00-1.53.885l-.62-.36a1 1 0 00-1.366.366l-.983 1.703a1 1 0 00.366 1.366l.62.36c-.125.5-.212 1.023-.257 1.561l-.733.146a1 1 0 000 1.966l.733.146c.045.538.132 1.06.257 1.561l-.62.36a1 1 0 00-.366 1.366l.983 1.703a1 1 0 001.366.366l.62-.36c.48.343.99.63 1.53.885l.146.733a1 1 0 001.966 0l.146-.733a7.977 7.977 0 001.53-.885l.62.36a1 1 0 001.366-.366l.983-1.703a1 1 0 00-.366-1.366l-.62-.36c.125-.5.212-1.023.257-1.561l.733-.146a1 1 0 000-1.966l-.733-.146a9.007 9.007 0 00-.257-1.561l.62-.36a1 1 0 00.366-1.366l-.983-1.703a1 1 0 00-1.366-.366l-.62.36a7.977 7.977 0 00-1.53-.885l-.146-.733zM10 12a2 2 0 110-4 2 2 0 010 4z" />
-                                </svg>
+                            <button class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700" onclick="copiarCustosMesAnterior()">
+                                📋 Copiar Mês Anterior
                             </button>
+                            <button class="px-3 py-2 rounded border border-gray-300 bg-white text-gray-700 hover:bg-gray-100 shadow-sm" title="Gerir centros de custos" aria-label="Gerir centros de custos" onclick="abrirModalCentrosCusto()">⚙️</button>
                         </div>
                     </div>
                     <div id="listaCustos" class="space-y-3"></div>
@@ -162,9 +166,14 @@
                 <div id="investimentos" class="tab-content hidden">
                     <div class="flex justify-between items-center mb-4">
                         <h2 class="text-xl font-semibold">Investimentos</h2>
-                        <button class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700" onclick="abrirModalInvestimento()">
-                            + Novo Investimento
-                        </button>
+                        <div class="flex items-center gap-2">
+                            <button class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700" onclick="abrirModalInvestimento()">
+                                + Novo Investimento
+                            </button>
+                            <button class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700" onclick="copiarInvestimentosMesAnterior()">
+                                📋 Copiar Mês Anterior
+                            </button>
+                        </div>
                     </div>
                     <div class="overflow-x-auto">
                         <table class="min-w-full bg-white">
@@ -211,9 +220,14 @@
                         <div>
                             <div class="flex justify-between items-center mb-4">
                                 <h2 class="text-xl font-semibold">Ativos</h2>
-                                <button class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700" onclick="abrirModalAtivo()">
-                                    + Novo Ativo
-                                </button>
+                                <div class="flex items-center gap-2">
+                                    <button class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700" onclick="abrirModalAtivo()">
+                                        + Novo Ativo
+                                    </button>
+                                    <button class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700" onclick="copiarAtivosMesAnterior()">
+                                        📋 Copiar Mês Anterior
+                                    </button>
+                                </div>
                             </div>
                             <div id="listaAtivos" class="space-y-3"></div>
                             <div class="mt-4 pt-4 border-t">
@@ -228,9 +242,14 @@
                         <div>
                             <div class="flex justify-between items-center mb-4">
                                 <h2 class="text-xl font-semibold">Passivos</h2>
-                                <button class="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700" onclick="abrirModalPassivo()">
-                                    + Novo Passivo
-                                </button>
+                                <div class="flex items-center gap-2">
+                                    <button class="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700" onclick="abrirModalPassivo()">
+                                        + Novo Passivo
+                                    </button>
+                                    <button class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700" onclick="copiarPassivosMesAnterior()">
+                                        📋 Copiar Mês Anterior
+                                    </button>
+                                </div>
                             </div>
                             <div id="listaPassivos" class="space-y-3"></div>
                             <div class="mt-4 pt-4 border-t">
