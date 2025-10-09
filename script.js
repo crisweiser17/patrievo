@@ -3641,6 +3641,7 @@ async function abrirModalEvolucaoFinanceira() {
                     <option value="renda_total">💰 Renda Total</option>
                     <option value="custo_total">💸 Custos Totais</option>
                     <option value="renda_disponivel">🟢 Renda Disponível</option>
+                    <option value="investimento_total">📊 Investimentos Totais</option>
                     <option value="rendimento_total">📈 Renda de Investimentos</option>
                     <option value="renda_independente">🏖️ Renda Sem Emprego</option>
                 </select>
@@ -3762,6 +3763,7 @@ function atualizarGraficoEvolucaoFinanceira() {
         renda_total: '💰 Renda Total',
         custo_total: '💸 Custos Totais',
         renda_disponivel: '🟢 Renda Disponível',
+        investimento_total: '📊 Investimentos Totais',
         rendimento_total: '📈 Renda de Investimentos',
         renda_independente: '🏖️ Renda Sem Emprego'
     }[metric] || 'Evolução';
@@ -3793,6 +3795,7 @@ function montarTabelaEvolucaoFinanceira(historicoPeriodo, periodo) {
             <td class="px-2 py-1 text-right">${formatarMoeda(ind.renda_total || 0)}</td>
             <td class="px-2 py-1 text-right">${formatarMoeda(ind.custo_total || 0)}</td>
             <td class="px-2 py-1 text-right">${formatarMoeda(ind.renda_disponivel || 0)}</td>
+            <td class="px-2 py-1 text-right">${formatarMoeda(ind.investimento_total || 0)}</td>
             <td class="px-2 py-1 text-right">${formatarMoeda(ind.rendimento_total || 0)}</td>
             <td class="px-2 py-1 text-right">${formatarMoeda(ind.renda_independente || 0)}</td>
         </tr>`;
@@ -3807,6 +3810,7 @@ function montarTabelaEvolucaoFinanceira(historicoPeriodo, periodo) {
                     <th class="px-2 py-1">💰 Renda Total</th>
                     <th class="px-2 py-1">💸 Custos Totais</th>
                     <th class="px-2 py-1">🟢 Renda Disponível</th>
+                    <th class="px-2 py-1">📊 Investimentos Totais</th>
                     <th class="px-2 py-1">📈 Renda de Investimentos</th>
                     <th class="px-2 py-1">🏖️ Renda Sem Emprego</th>
                 </tr>
@@ -3840,6 +3844,7 @@ async function carregarIndicadoresHistoricos(maxMeses = 12, baseMesAno = null) {
                 renda_total: parseFloat(ind.renda_total) || 0,
                 custo_total: parseFloat(ind.custo_total) || 0,
                 renda_disponivel: parseFloat(ind.renda_disponivel) || 0,
+                investimento_total: parseFloat(ind.investimento_total) || 0,
                 rendimento_total: parseFloat(ind.rendimento_total) || 0,
                 renda_independente: parseFloat(ind.renda_independente) || 0
             };

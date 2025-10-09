@@ -256,18 +256,7 @@
                         <p class="text-sm text-gray-600">Gerencie categorias, centros de custos e templates</p>
                     </div>
 
-                    <!-- Seção de Gerenciamento -->
-                    <div class="bg-white border border-gray-200 rounded-lg p-4 mb-6">
-                        <h3 class="text-lg font-semibold mb-4">🏷️ Gerenciamento de Categorias</h3>
-                        <div class="flex flex-wrap gap-3">
-                            <button class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 flex items-center gap-2" onclick="abrirModalCategoriasReceita()">
-                                📥 Gerir Categorias de Receita
-                            </button>
-                            <button class="bg-orange-600 text-white px-4 py-2 rounded hover:bg-orange-700 flex items-center gap-2" onclick="abrirModalCentrosCusto()">
-                                💸 Gerir Centros de Custos
-                            </button>
-                        </div>
-                    </div>
+                    <!-- Seção de Gerenciamento removida: botões reposicionados nas sub-abas -->
 
                     <!-- Seção de Templates -->
                     <div class="bg-white border border-gray-200 rounded-lg p-4">
@@ -299,9 +288,14 @@
                     <div id="config-receitas" class="config-tab-content active">
                         <div class="flex justify-between items-center mb-4">
                             <h3 class="text-lg font-semibold">Templates de Receitas</h3>
-                            <button id="btn-novo-template-receitas" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700" onclick="abrirModalTemplateReceita()">
-                                ➕ Novo Template de Receita
-                            </button>
+                            <div class="flex items-center gap-2">
+                                <button id="btn-novo-template-receitas" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700" onclick="abrirModalTemplateReceita()">
+                                    ➕ Novo Template de Receita
+                                </button>
+                                <button class="bg-gray-800 text-white px-4 py-2 rounded hover:bg-gray-900 flex items-center gap-2" onclick="abrirModalCategoriasReceita()">
+                                    📥 Gerir Categorias de Receita
+                                </button>
+                            </div>
                         </div>
                         <div id="listaTemplatesReceitas" class="space-y-3"></div>
                     </div>
@@ -309,9 +303,14 @@
                     <div id="config-custos" class="config-tab-content hidden">
                         <div class="flex justify-between items-center mb-4">
                             <h3 class="text-lg font-semibold">Templates de Custos</h3>
-                            <button id="btn-novo-template-custos" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700" onclick="abrirModalTemplateCusto()">
-                                ➕ Novo Template de Custo
-                            </button>
+                            <div class="flex items-center gap-2">
+                                <button id="btn-novo-template-custos" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700" onclick="abrirModalTemplateCusto()">
+                                    ➕ Novo Template de Custo
+                                </button>
+                                <button class="bg-gray-800 text-white px-4 py-2 rounded hover:bg-gray-900 flex items-center gap-2" onclick="abrirModalCentrosCusto()">
+                                    💸 Gerir Centros de Custos
+                                </button>
+                            </div>
                         </div>
                         <div id="listaTemplatesCustos" class="space-y-3"></div>
                     </div>
