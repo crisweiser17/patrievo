@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Teste Templates</title>
+</head>
+<body>
+    <h1>Teste de Templates</h1>
+    
+    <h2>Receitas</h2>
+    <select id="rec_template">
+        <option value="">Carregando...</option>
+    </select>
+    
+    <h2>Custos</h2>
+    <select id="cus_template">
+        <option value="">Carregando...</option>
+    </select>
+    
+    <h2>Investimentos</h2>
+    <select id="inv_template">
+        <option value="">Carregando...</option>
+    </select>
+    
+    <h2>Ativos</h2>
+    <select id="atv_template">
+        <option value="">Carregando...</option>
+    </select>
+    
+    <h2>Passivos</h2>
+    <select id="psv_template">
+        <option value="">Carregando...</option>
+    </select>
+    
+    <script>
+        async function carregarTemplates(tipo) {
+            try {
+                const response = await fetch(`api/templates.php?type=${tipo}`);
+                const templates = await response.json();
+                return templates;
+            } catch (error) {
+                console.error('Erro ao carregar templates:', error);
+                return [];
+            }
+        }
+        
+        async function carregarTemplatesReceita() {
+            try {
+                const templates = await carregarTemplates('receitas');
+                const selectTemplate = document.getElementById('rec_template');
+                if (selectTemplate) {
+                    selectTemplate.innerHTML = '<option value="">Selecione um template ou preencha manualmente</option>';
+                    if (templates.length > 0) {
+                        templates.forEach(template => {
+                            const option = document.createElement('option');
+                            option.value = template.id;
+                            option.textContent = template.nome;
+                            selectTemplate.appendChild(option);
+                        });
+                    }
+                }
+            } catch (error) {
+                console.log('Erro ao carregar templates de receitas:', error);
+            }
+        }
+        
+        async function carregarTemplatesCusto() {
+            try {
+                const templates = await carregarTemplates('custos');
+                const selectTemplate = document.getElementById('cus_template');
+                if (selectTemplate) {
+                    selectTemplate.innerHTML = '<option value="">Selecione um template ou preencha manualmente</option>';
+                    if (templates.length > 0) {
+                        templates.forEach(template => {
+                            const option = document.createElement('option');
+                            option.value = template.id;
+                            option.textContent = template.nome;
+                            selectTemplate.appendChild(option);
+                        });
+                    }
+                }
+            } catch (error) {
+                console.log('Erro ao carregar templates de custos:', error);
+            }
+        }
+        
+        async function carregarTemplatesInvestimento() {
+            try {
+                const templates = await carregarTemplates('investimentos');
+                const selectTemplate = document.getElementById('inv_template');
+                if (selectTemplate) {
+                    selectTemplate.innerHTML = '<option value="">Selecione um template ou preencha manualmente</option>';
+                    if (templates.length > 0) {
+                        templates.forEach(template => {
+                            const option = document.createElement('option');
+                            option.value = template.id;
+                            option.textContent = template.instituicao;
+                            selectTemplate.appendChild(option);
+                        });
+                    }
+                }
+            } catch (error) {
+                console.log('Erro ao carregar templates de investimentos:', error);
+            }
+        }
+        
+        async function carregarTemplatesAtivo() {
+            try {
+                const templates = await carregarTemplates('ativos');
+                const selectTemplate = document.getElementById('atv_template');
+                if (selectTemplate) {
+                    selectTemplate.innerHTML = '<option value="">Selecione um template ou preencha manualmente</option>';
+                    if (templates.length > 0) {
+                        templates.forEach(template => {
+                            const option = document.createElement('option');
+                            option.value = template.id;
+                            option.textContent = template.nome;
+                            selectTemplate.appendChild(option);
+                        });
+                    }
+                }
+            } catch (error) {
+                console.log('Erro ao carregar templates de ativos:', error);
+            }
+        }
+        
+        async function carregarTemplatesPassivo() {
+            try {
+                const response = await fetch('api/templates.php?type=passivos');
+                const templates = await response.json();
+                
+                const selectTemplate = document.getElementById('psv_template');
+                if (selectTemplate) {
+                    selectTemplate.innerHTML = '<option value="">Selecione um template ou preencha manualmente</option>';
+                    
+                    if (templates.length > 0) {
+                        templates.forEach(template => {
+                            const option = document.createElement('option');
+                            option.value = template.id;
+                            option.textContent = template.nome;
+                            selectTemplate.appendChild(option);
+                        });
+                    }
+                }
+            } catch (error) {
+                console.log('Erro ao carregar templates de passivos:', error);
+            }
+        }
+        
+        // Carregar todos os templates quando a página carregar
+        document.addEventListener('DOMContentLoaded', function() {
+            carregarTemplatesReceita();
+            carregarTemplatesCusto();
+            carregarTemplatesInvestimento();
+            carregarTemplatesAtivo();
+            carregarTemplatesPassivo();
+        });
+    </script>
+</body>
+</html>

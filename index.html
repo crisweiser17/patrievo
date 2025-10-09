@@ -91,7 +91,7 @@
                 </h3>
                 <div class="text-2xl font-bold text-blue-600" id="patrimonioTotal">R$ 0,00</div>
                 <div class="text-sm text-gray-600 mt-2">
-                    <div>Investimentos: <span id="investimentosTotal">R$ 0,00</span></div>
+                    <div><span class="font-bold">Investimentos:</span> <span id="investimentosTotal" class="font-extrabold">R$ 0,00</span></div>
                     <div>Ativos: <span id="ativosTotal">R$ 0,00</span></div>
                     <div>Passivos: <span id="passivosTotal">R$ 0,00</span></div>
                 </div>
@@ -114,8 +114,6 @@
                     <a href="#" id="linkEvolucaoFinanceira" class="ml-2 text-blue-600 hover:underline" title="Abrir Evolução Financeira">📈</a>
                 </h3>
                 <div class="text-sm text-gray-600">
-                    <div>💰 Renda Total: <span id="insightsRendaTotal">R$ 0,00</span></div>
-                    <div>💸 Custos Totais: <span id="insightsCustosTotais">R$ 0,00</span></div>
                     <div>🟢 Renda Disponível: <span id="insightsRendaDisponivel">R$ 0,00</span></div>
                     <div>📈 Renda de Investimentos: <span id="rendaInvestimentos">R$ 0,00</span></div>
                     <div>🏖️ Renda Sem Emprego: <span id="rendaSemEmprego">R$ 0,00</span></div>
@@ -139,32 +137,25 @@
                     <button class="tab-button px-6 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 border-b-2 border-transparent" data-tab="ativos-passivos">
                         🏠 Ativos & Passivos
                     </button>
+                    <button class="tab-button px-6 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 border-b-2 border-transparent" data-tab="configuracoes">
+                        ⚙️ Configurações
+                    </button>
                 </nav>
             </div>
 
             <!-- Conteúdo das abas -->
             <div class="p-6">
                 <!-- Aba Receitas -->
-                <div id="receitas" class="tab-content active">
-                    <div class="flex justify-between items-center mb-4">
-                        <h2 class="text-xl font-semibold">Receitas</h2>
-                        <div class="flex items-center gap-2">
-                            <button class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700" onclick="abrirModalReceita()">
-                                + Nova Receita
-                            </button>
-                            <button class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700" onclick="copiarReceitasMesAnterior()">
-                                📋 Copiar Mês Anterior
-                            </button>
-                            <button class="px-3 py-2 rounded border border-gray-300 bg-white text-gray-700 hover:bg-gray-100 shadow-sm" title="Gerir categorias" aria-label="Gerir categorias" onclick="abrirModalCategoriasReceita()">⚙️</button>
+                    <div id="receitas" class="tab-content active">
+                        <div class="flex justify-between items-center mb-4">
+                            <h2 class="text-xl font-semibold">Receitas</h2>
+                            <div class="flex items-center gap-2">
+                                <button class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700" onclick="abrirModalReceita()">
+                                    + Nova Receita
+                                </button>
+                            </div>
                         </div>
-                    </div>
-                    <div id="listaReceitas" class="space-y-3"></div>
-                    <div class="mt-4 pt-4 border-t">
-                        <div class="flex justify-between text-lg font-semibold">
-                            <span>Total:</span>
-                            <span id="totalReceitas">R$ 0,00</span>
-                        </div>
-                    </div>
+                        <div id="listaReceitas" class="space-y-3"></div>
                     
                     <!-- Gráfico de Evolução de Receitas -->
                     <div class="mt-6 bg-gray-50 p-4 rounded-lg">
@@ -176,26 +167,16 @@
                 </div>
 
                 <!-- Aba Custos -->
-                <div id="custos" class="tab-content hidden">
-                    <div class="flex justify-between items-center mb-4">
-                        <h2 class="text-xl font-semibold">Custos</h2>
-                        <div class="flex items-center gap-2">
-                            <button class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700" onclick="abrirModalCusto()">
-                                + Novo Custo
-                            </button>
-                            <button class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700" onclick="copiarCustosMesAnterior()">
-                                📋 Copiar Mês Anterior
-                            </button>
-                            <button class="px-3 py-2 rounded border border-gray-300 bg-white text-gray-700 hover:bg-gray-100 shadow-sm" title="Gerir centros de custos" aria-label="Gerir centros de custos" onclick="abrirModalCentrosCusto()">⚙️</button>
+                    <div id="custos" class="tab-content hidden">
+                        <div class="flex justify-between items-center mb-4">
+                            <h2 class="text-xl font-semibold">Custos</h2>
+                            <div class="flex items-center gap-2">
+                                <button class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700" onclick="abrirModalCusto()">
+                                    + Novo Custo
+                                </button>
+                            </div>
                         </div>
-                    </div>
-                    <div id="listaCustos" class="space-y-3"></div>
-                    <div class="mt-4 pt-4 border-t">
-                        <div class="flex justify-between text-lg font-semibold">
-                            <span>Total:</span>
-                            <span id="totalCustos">R$ 0,00</span>
-                        </div>
-                    </div>
+                        <div id="listaCustos" class="space-y-3"></div>
                     
                     <!-- Gráfico de Evolução de Custos -->
                     <div class="mt-6 bg-gray-50 p-4 rounded-lg">
@@ -207,30 +188,17 @@
                 </div>
 
                 <!-- Aba Investimentos -->
-                <div id="investimentos" class="tab-content hidden">
-                    <div class="flex justify-between items-center mb-4">
-                        <h2 class="text-xl font-semibold">Investimentos</h2>
-                        <div class="flex items-center gap-2">
-                            <button class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700" onclick="abrirModalInvestimento()">
-                                + Novo Investimento
-                            </button>
-                            <button class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700" onclick="copiarInvestimentosMesAnterior()">
-                                📋 Copiar Mês Anterior
-                            </button>
+                    <div id="investimentos" class="tab-content hidden">
+                        <div class="flex justify-between items-center mb-4">
+                            <h2 class="text-xl font-semibold">Investimentos</h2>
+                            <div class="flex items-center gap-2">
+                                <button class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700" onclick="abrirModalInvestimento()">
+                                    + Novo Investimento
+                                </button>
+
+                            </div>
                         </div>
-                    </div>
-                    <div id="listaInvestimentos"></div>
-                    <div class="mt-4 pt-4 border-t grid grid-cols-2 gap-4">
-                        <div>
-                            <div class="text-sm text-gray-600">Soma Saldos BRL: <span id="somaSaldosBRL" class="font-semibold">R$ 0,00</span></div>
-                            <div class="text-sm text-gray-600">Soma Saldos USD: <span id="somaSaldosUSD" class="font-semibold">$ 0,00</span></div>
-                            <div class="text-sm text-gray-600">Soma Total: <span id="somaTotal" class="font-semibold">R$ 0,00</span></div>
-                        </div>
-                        <div>
-                            <div class="text-sm text-gray-600">Soma Rendimentos: <span id="somaRendimentos" class="font-semibold">R$ 0,00</span></div>
-                            <div class="text-sm text-gray-600">Média % Rendimentos: <span id="mediaRendimentos" class="font-semibold">0.00%</span></div>
-                        </div>
-                    </div>
+                        <div id="listaInvestimentos"></div>
                     
                     <!-- Gráfico de Evolução Patrimonial (apenas para Investimentos) -->
                     <div class="mt-6 bg-gray-50 p-4 rounded-lg">
@@ -244,29 +212,7 @@
                 <!-- Aba Ativos & Passivos -->
                 <div id="ativos-passivos" class="tab-content hidden">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <!-- Ativos -->
-                        <div>
-                            <div class="flex justify-between items-center mb-4">
-                                <h2 class="text-xl font-semibold">Ativos</h2>
-                                <div class="flex items-center gap-2">
-                                    <button class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700" onclick="abrirModalAtivo()">
-                                        + Novo Ativo
-                                    </button>
-                                    <button class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700" onclick="copiarAtivosMesAnterior()">
-                                        📋 Copiar Mês Anterior
-                                    </button>
-                                </div>
-                            </div>
-                            <div id="listaAtivos" class="space-y-3"></div>
-                            <div class="mt-4 pt-4 border-t">
-                                <div class="flex justify-between text-lg font-semibold">
-                                    <span>Total Ativos:</span>
-                                    <span id="totalAtivos" class="text-green-600">R$ 0,00</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Passivos -->
+                        <!-- Passivos (primeiro) -->
                         <div>
                             <div class="flex justify-between items-center mb-4">
                                 <h2 class="text-xl font-semibold">Passivos</h2>
@@ -274,21 +220,26 @@
                                     <button class="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700" onclick="abrirModalPassivo()">
                                         + Novo Passivo
                                     </button>
-                                    <button class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700" onclick="copiarPassivosMesAnterior()">
-                                        📋 Copiar Mês Anterior
-                                    </button>
                                 </div>
                             </div>
                             <div id="listaPassivos" class="space-y-3"></div>
-                            <div class="mt-4 pt-4 border-t">
-                                <div class="flex justify-between text-lg font-semibold">
-                                    <span>Total Passivos:</span>
-                                    <span id="totalPassivos" class="text-red-600">R$ 0,00</span>
+                        </div>
+
+                        <!-- Ativos (depois) -->
+                        <div>
+                            <div class="flex justify-between items-center mb-4">
+                                <h2 class="text-xl font-semibold">Ativos</h2>
+                                <div class="flex items-center gap-2">
+                                    <button class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700" onclick="abrirModalAtivo()">
+                                        + Novo Ativo
+                                    </button>
+    
                                 </div>
                             </div>
+                            <div id="listaAtivos" class="space-y-3"></div>
                         </div>
                     </div>
-                    
+                
                     <!-- Gráfico de Ativos e Passivos -->
                     <div class="mt-6 bg-gray-50 p-4 rounded-lg">
                         <h3 class="text-lg font-semibold mb-4">📊 Evolução de Ativos e Passivos (12 meses)</h3>
@@ -296,6 +247,105 @@
                             <canvas id="graficoAtivosPassivos" class="w-full h-full"></canvas>
                         </div>
                     </div>
+                </div>
+
+                <!-- Aba Configurações -->
+                <div id="configuracoes" class="tab-content hidden">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-xl font-semibold">⚙️ Configurações</h2>
+                        <p class="text-sm text-gray-600">Gerencie categorias, centros de custos e templates</p>
+                    </div>
+
+                    <!-- Seção de Gerenciamento -->
+                    <div class="bg-white border border-gray-200 rounded-lg p-4 mb-6">
+                        <h3 class="text-lg font-semibold mb-4">🏷️ Gerenciamento de Categorias</h3>
+                        <div class="flex flex-wrap gap-3">
+                            <button class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 flex items-center gap-2" onclick="abrirModalCategoriasReceita()">
+                                📥 Gerir Categorias de Receita
+                            </button>
+                            <button class="bg-orange-600 text-white px-4 py-2 rounded hover:bg-orange-700 flex items-center gap-2" onclick="abrirModalCentrosCusto()">
+                                💸 Gerir Centros de Custos
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Seção de Templates -->
+                    <div class="bg-white border border-gray-200 rounded-lg p-4">
+                        <h3 class="text-lg font-semibold mb-4">📋 Templates</h3>
+                        <p class="text-sm text-gray-600 mb-4">Gerencie templates para agilizar o cadastro mensal</p>
+
+                    <!-- Sub-abas de configuração -->
+                    <div class="bg-gray-50 rounded-lg p-1 mb-6">
+                        <nav class="flex space-x-1">
+                            <button class="config-tab-button active px-4 py-2 text-sm font-medium bg-white text-blue-600 rounded shadow" data-config-tab="receitas">
+                                📥 Receitas
+                            </button>
+                            <button class="config-tab-button px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-800 rounded" data-config-tab="custos">
+                                💸 Custos
+                            </button>
+                            <button class="config-tab-button px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-800 rounded" data-config-tab="investimentos">
+                                📊 Investimentos
+                            </button>
+                            <button class="config-tab-button px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-800 rounded" data-config-tab="ativos">
+                                🏠 Ativos
+                            </button>
+                            <button class="config-tab-button px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-800 rounded" data-config-tab="passivos">
+                                💳 Passivos
+                            </button>
+                        </nav>
+                    </div>
+
+                    <!-- Conteúdo das sub-abas -->
+                    <div id="config-receitas" class="config-tab-content active">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-lg font-semibold">Templates de Receitas</h3>
+                            <button id="btn-novo-template-receitas" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700" onclick="abrirModalTemplateReceita()">
+                                ➕ Novo Template de Receita
+                            </button>
+                        </div>
+                        <div id="listaTemplatesReceitas" class="space-y-3"></div>
+                    </div>
+
+                    <div id="config-custos" class="config-tab-content hidden">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-lg font-semibold">Templates de Custos</h3>
+                            <button id="btn-novo-template-custos" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700" onclick="abrirModalTemplateCusto()">
+                                ➕ Novo Template de Custo
+                            </button>
+                        </div>
+                        <div id="listaTemplatesCustos" class="space-y-3"></div>
+                    </div>
+
+                    <div id="config-investimentos" class="config-tab-content hidden">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-lg font-semibold">Templates de Investimentos</h3>
+                            <button id="btn-novo-template-investimentos" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700" onclick="abrirModalTemplateInvestimento()">
+                                ➕ Novo Template de Investimento
+                            </button>
+                        </div>
+                        <div id="listaTemplatesInvestimentos" class="space-y-3"></div>
+                    </div>
+
+                    <div id="config-ativos" class="config-tab-content hidden">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-lg font-semibold">Templates de Ativos</h3>
+                            <button id="btn-novo-template-ativos" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700" onclick="abrirModalTemplateAtivo()">
+                                ➕ Novo Template de Ativo
+                            </button>
+                        </div>
+                        <div id="listaTemplatesAtivos" class="space-y-3"></div>
+                    </div>
+
+                    <div id="config-passivos" class="config-tab-content hidden">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-lg font-semibold">Templates de Passivos</h3>
+                            <button id="btn-novo-template-passivos" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700" onclick="abrirModalTemplatePassivo()">
+                                ➕ Novo Template de Passivo
+                            </button>
+                        </div>
+                        <div id="listaTemplatesPassivos" class="space-y-3"></div>
+                    </div>
+                    </div> <!-- Fim da seção de Templates -->
                 </div>
             </div>
         </div>

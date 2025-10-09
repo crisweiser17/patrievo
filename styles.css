@@ -275,3 +275,45 @@
 ::-webkit-scrollbar-thumb:hover {
     background: #a8a8a8;
 }
+
+/* Estilos para sub-abas de configuração */
+.config-tab-content {
+    display: none;
+}
+
+.config-tab-content.active {
+    display: block;
+}
+
+.config-tab-button.active {
+    background-color: white;
+    color: #2563eb;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+}
+
+.config-tab-button:not(.active):hover {
+    background-color: rgba(255, 255, 255, 0.5);
+}
+
+/* Estilos para cards de templates */
+.template-card {
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 1rem;
+    transition: all 0.2s;
+}
+
+.template-card:hover {
+    border-color: #d1d5db;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.template-actions {
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+.template-card:hover .template-actions {
+    opacity: 1;
+}

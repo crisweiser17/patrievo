@@ -9,7 +9,14 @@ let estado = {
     investimentos: [],
     ativos: [],
     passivos: [],
-    mesBaseGlobal: null
+    mesBaseGlobal: null,
+    sort: {
+        receitas: { key: null, dir: 'asc' },
+        custos: { key: null, dir: 'asc' },
+        investimentos: { key: null, dir: 'asc' },
+        ativos: { key: null, dir: 'asc' },
+        passivos: { key: null, dir: 'asc' },
+    }
 };
 
 // Inicialização da aplicação
@@ -165,184 +172,1131 @@ function configurarEventos() {
     }
 }
 
-// Funções para copiar dados do mês anterior
-async function copiarReceitasMesAnterior() {
-    const mesAnterior = calcularMesAnterior(estado.mesAno);
+async function carregarTemplatesPassivo() {
     try {
-        const receitasAnterior = await apiRequestSemMesAno(`receitas?mesAno=${mesAnterior}`, 'GET');
-        if (receitasAnterior.length === 0) {
-            alert('Não há receitas no mês anterior para copiar.');
-            return;
-        }
+        const response = await fetch('api/templates.php?type=passivos');
+        const templates = await response.json();
         
-        for (const receita of receitasAnterior) {
-            const novaReceita = {
-                ...receita,
-                mes_ano: estado.mesAno
-            };
-            delete novaReceita.id;
+        const selectTemplate = document.getElementById('psv_template');
+        if (selectTemplate) {
+            // Limpar opções existentes (exceto a primeira)
+            selectTemplate.innerHTML = '<option value="">Selecione um template ou preencha manualmente</option>';
             
-            try {
-                await apiRequest('receitas', 'POST', novaReceita);
-            } catch (_) {
-                novaReceita.id = Date.now();
-                estado.receitas.push(novaReceita);
-                salvarDadosLocais('receitas', estado.receitas);
+            if (templates.length > 0) {
+                templates.forEach(template => {
+                    const option = document.createElement('option');
+                    option.value = template.id;
+                    option.textContent = template.nome;
+                    selectTemplate.appendChild(option);
+                });
             }
         }
-        
-        await carregarDadosMes();
-        alert(`${receitasAnterior.length} receita(s) copiada(s) do mês anterior com sucesso!`);
     } catch (error) {
-        console.error('Erro ao copiar receitas:', error);
-        alert('Erro ao copiar receitas do mês anterior.');
+        console.log('Erro ao carregar templates de passivos:', error);
     }
 }
 
-async function copiarCustosMesAnterior() {
-    const mesAnterior = calcularMesAnterior(estado.mesAno);
-    try {
-        const custosAnterior = await apiRequestSemMesAno(`custos?mesAno=${mesAnterior}`, 'GET');
-        if (custosAnterior.length === 0) {
-            alert('Não há custos no mês anterior para copiar.');
-            return;
-        }
-        
-        for (const custo of custosAnterior) {
-            const novoCusto = {
-                ...custo,
-                mes_ano: estado.mesAno
-            };
-            delete novoCusto.id;
-            
-            try {
-                await apiRequest('custos', 'POST', novoCusto);
-            } catch (_) {
-                novoCusto.id = Date.now();
-                estado.custos.push(novoCusto);
-                salvarDadosLocais('custos', estado.custos);
-            }
-        }
-        
-        await carregarDadosMes();
-        alert(`${custosAnterior.length} custo(s) copiado(s) do mês anterior com sucesso!`);
-    } catch (error) {
-        console.error('Erro ao copiar custos:', error);
-        alert('Erro ao copiar custos do mês anterior.');
-    }
-}
+// ===== SISTEMA DE TEMPLATES DE CONFIGURAÇÃO =====
 
-async function copiarInvestimentosMesAnterior() {
-    const mesAnterior = calcularMesAnterior(estado.mesAno);
-    try {
-        const investimentosAnterior = await apiRequestSemMesAno(`investimentos?mesAno=${mesAnterior}`, 'GET');
-        if (investimentosAnterior.length === 0) {
-            alert('Não há investimentos no mês anterior para copiar.');
-            return;
-        }
-        
-        for (const investimento of investimentosAnterior) {
-            const novoInvestimento = {
-                ...investimento,
-                mes_ano: estado.mesAno
-            };
-            delete novoInvestimento.id;
-            
-            try {
-                await apiRequest('investimentos', 'POST', novoInvestimento);
-            } catch (_) {
-                novoInvestimento.id = Date.now();
-                estado.investimentos.push(novoInvestimento);
-                salvarDadosLocais('investimentos', estado.investimentos);
-            }
-        }
-        
-        await carregarDadosMes();
-        alert(`${investimentosAnterior.length} investimento(s) copiado(s) do mês anterior com sucesso!`);
-    } catch (error) {
-        console.error('Erro ao copiar investimentos:', error);
-        alert('Erro ao copiar investimentos do mês anterior.');
+// Gerenciamento de sub-abas de configuração
+document.addEventListener('DOMContentLoaded', function() {
+    const configTabButtons = document.querySelectorAll('.config-tab-button');
+    if (configTabButtons.length > 0) {
+        configTabButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                const configTabId = this.getAttribute('data-config-tab');
+                abrirConfigTab(configTabId);
+            });
+        });
     }
-}
+});
 
-async function copiarAtivosMesAnterior() {
-    const mesAnterior = calcularMesAnterior(estado.mesAno);
-    try {
-        const ativosAnterior = await apiRequestSemMesAno(`ativos?mesAno=${mesAnterior}`, 'GET');
-        if (ativosAnterior.length === 0) {
-            alert('Não há ativos no mês anterior para copiar.');
-            return;
-        }
-        
-        for (const ativo of ativosAnterior) {
-            const novoAtivo = {
-                ...ativo,
-                mes_ano: estado.mesAno
-            };
-            delete novoAtivo.id;
-            
-            try {
-                await apiRequest('ativos', 'POST', novoAtivo);
-            } catch (_) {
-                novoAtivo.id = Date.now();
-                estado.ativos.push(novoAtivo);
-                salvarDadosLocais('ativos', estado.ativos);
-            }
-        }
-        
-        await carregarDadosMes();
-        alert(`${ativosAnterior.length} ativo(s) copiado(s) do mês anterior com sucesso!`);
-    } catch (error) {
-        console.error('Erro ao copiar ativos:', error);
-        alert('Erro ao copiar ativos do mês anterior.');
-    }
-}
-
-async function copiarPassivosMesAnterior() {
-    const mesAnterior = calcularMesAnterior(estado.mesAno);
-    try {
-        const passivosAnterior = await apiRequestSemMesAno(`passivos?mesAno=${mesAnterior}`, 'GET');
-        if (passivosAnterior.length === 0) {
-            alert('Não há passivos no mês anterior para copiar.');
-            return;
-        }
-        
-        for (const passivo of passivosAnterior) {
-            const novoPassivo = {
-                ...passivo,
-                mes_ano: estado.mesAno
-            };
-            delete novoPassivo.id;
-            
-            try {
-                await apiRequest('passivos', 'POST', novoPassivo);
-            } catch (_) {
-                novoPassivo.id = Date.now();
-                estado.passivos.push(novoPassivo);
-                salvarDadosLocais('passivos', estado.passivos);
-            }
-        }
-        
-        await carregarDadosMes();
-        alert(`${passivosAnterior.length} passivo(s) copiado(s) do mês anterior com sucesso!`);
-    } catch (error) {
-        console.error('Erro ao copiar passivos:', error);
-        alert('Erro ao copiar passivos do mês anterior.');
-    }
-}
-
-function calcularMesAnterior(mesAnoAtual) {
-    const [ano, mes] = mesAnoAtual.split('-').map(Number);
-    let mesAnterior = mes - 1;
-    let anoAnterior = ano;
+function abrirConfigTab(configTabId) {
+    // Remover classe active de todas as sub-abas
+    document.querySelectorAll('.config-tab-button').forEach(btn => {
+        btn.classList.remove('active', 'bg-white', 'text-blue-600', 'shadow');
+        btn.classList.add('text-gray-600');
+    });
     
-    if (mesAnterior === 0) {
-        mesAnterior = 12;
-        anoAnterior = ano - 1;
+    document.querySelectorAll('.config-tab-content').forEach(content => {
+        content.classList.remove('active');
+        content.classList.add('hidden');
+    });
+    
+    // Adicionar classe active à sub-aba selecionada
+    const configTabButton = document.querySelector(`[data-config-tab="${configTabId}"]`);
+    const configTabContent = document.getElementById(`config-${configTabId}`);
+    
+    if (configTabButton && configTabContent) {
+        configTabButton.classList.add('active', 'bg-white', 'text-blue-600', 'shadow');
+        configTabButton.classList.remove('text-gray-600');
+        
+        configTabContent.classList.add('active');
+        configTabContent.classList.remove('hidden');
+        
+        // Carregar templates da aba selecionada
+        carregarTemplates(configTabId);
+    }
+}
+
+// Carregar templates quando a aba de configurações for aberta
+
+// Funções para carregar templates
+async function carregarTemplates(tipo) {
+    try {
+        const response = await fetch(`api/templates.php?type=${tipo}`);
+        const templates = await response.json();
+        
+        if (response.ok) {
+            renderizarTemplates(tipo, templates);
+        } else {
+            console.error('Erro ao carregar templates:', templates.error);
+        }
+    } catch (error) {
+        console.error('Erro ao carregar templates:', error);
+    }
+}
+
+function renderizarTemplates(tipo, templates) {
+    const container = document.getElementById(`listaTemplates${tipo.charAt(0).toUpperCase() + tipo.slice(1)}`);
+    if (!container) return;
+    
+    if (templates.length === 0) {
+        container.innerHTML = `
+            <div class="text-center py-8 text-gray-500">
+                <p>Nenhum template cadastrado ainda.</p>
+                <p class="text-sm">Clique em "Novo Template" para começar.</p>
+            </div>
+        `;
+        return;
     }
     
-    return `${anoAnterior}-${mesAnterior.toString().padStart(2, '0')}`;
+    container.innerHTML = criarTabelaTemplates(tipo, templates);
 }
+
+// Flags de rendimento
+// Lista de investimentos (persistida em localStorage)
+const INVEST_LIST_FLAG_STORAGE_KEY = 'evoPatri_flag_rendimento_invest_list';
+function getInvestListFlag() {
+    const v = localStorage.getItem(INVEST_LIST_FLAG_STORAGE_KEY);
+    const num = parseFloat(v);
+    return isNaN(num) ? 1 : num; // padrão 1%
+}
+function setInvestListFlag(val) {
+    const num = parseFloat(val);
+    if (!isNaN(num)) localStorage.setItem(INVEST_LIST_FLAG_STORAGE_KEY, String(num));
+}
+window.updateInvestFlag = function(val) {
+    setInvestListFlag(val);
+    atualizarInvestimentos();
+};
+
+function criarTabelaTemplates(tipo, templates) {
+    // Define cabeçalhos e mapeamento de colunas por tipo
+    let headers = [];
+    let rowsHtml = '';
+    const safe = (v) => (v === null || v === undefined) ? '' : String(v);
+    const fmtPct = (v) => {
+        const num = (typeof v === 'number') ? v : parseFloat(String(v).replace(',', '.'));
+        if (isNaN(num)) return '0,00%';
+        return `${num.toFixed(2).replace('.', ',')}%`;
+    };
+    
+    switch (tipo) {
+        case 'receitas':
+            headers = ['Nome', 'Categoria', 'Valor', 'Frequência', 'Moeda', 'Confiabilidade', 'Notas', 'Ações'];
+            rowsHtml = templates.map(t => `
+                <tr class="border-b">
+                    <td class="px-3 py-2 font-medium">${safe(t.nome)}</td>
+                    <td class="px-3 py-2">${safe(t.categoria)}</td>
+                    <td class="px-3 py-2">${formatarMoeda(Number(t.valor ?? 0), t.moeda || 'BRL')}</td>
+                    <td class="px-3 py-2">${safe(t.frequencia || 'mensal')}</td>
+                    <td class="px-3 py-2">${safe(t.moeda || 'BRL')}</td>
+                    <td class="px-3 py-2">${safe(t.confiabilidade || 'alta')}</td>
+                    <td class="px-3 py-2 text-gray-600">${safe(t.notas)}</td>
+                    <td class="px-3 py-2 text-right">
+                        <button class="text-blue-600 hover:underline mr-3" onclick="editarTemplate('receitas', ${t.id})">Editar</button>
+                        <button class="text-red-600 hover:underline" onclick="excluirTemplate('receitas', ${t.id})">Excluir</button>
+                    </td>
+                </tr>
+            `).join('');
+            break;
+        case 'custos':
+            headers = ['Nome', 'Centro de Custo', 'Valor', 'Moeda', 'Notas', 'Ações'];
+            rowsHtml = templates.map(t => `
+                <tr class="border-b">
+                    <td class="px-3 py-2 font-medium">${safe(t.nome)}</td>
+                    <td class="px-3 py-2">${safe(t.centro_custo) || 'Centro não definido'}</td>
+                    <td class="px-3 py-2">${formatarMoeda(Number(t.valor ?? 0), t.moeda || 'BRL')}</td>
+                    <td class="px-3 py-2">${safe(t.moeda || 'BRL')}</td>
+                    <td class="px-3 py-2 text-gray-600">${safe(t.notas)}</td>
+                    <td class="px-3 py-2 text-right">
+                        <button class="text-blue-600 hover:underline mr-3" onclick="editarTemplate('custos', ${t.id})">Editar</button>
+                        <button class="text-red-600 hover:underline" onclick="excluirTemplate('custos', ${t.id})">Excluir</button>
+                    </td>
+                </tr>
+            `).join('');
+            break;
+        case 'investimentos':
+            headers = ['Instituição', 'Valor', 'Moeda', 'Rendimento (%)', 'Liquidez', 'Notas', 'Ações'];
+            rowsHtml = templates.map(t => {
+                const pct = (t.rendimento_percentual !== undefined) ? t.rendimento_percentual : (t.rendimento || 0);
+                return `
+                <tr class="border-b">
+                    <td class="px-3 py-2 font-medium">${safe(t.instituicao)}</td>
+                    <td class="px-3 py-2">${formatarMoeda(Number(t.valor ?? 0), t.moeda || 'BRL')}</td>
+                    <td class="px-3 py-2">${safe(t.moeda || 'BRL')}</td>
+                    <td class="px-3 py-2">${fmtPct(pct)}</td>
+                    <td class="px-3 py-2">${safe(t.liquidez || 'líquido')}</td>
+                    <td class="px-3 py-2 text-gray-600">${safe(t.notas)}</td>
+                    <td class="px-3 py-2 text-right">
+                        <button class="text-blue-600 hover:underline mr-3" onclick="editarTemplate('investimentos', ${t.id})">Editar</button>
+                        <button class="text-red-600 hover:underline" onclick="excluirTemplate('investimentos', ${t.id})">Excluir</button>
+                    </td>
+                </tr>
+                `;
+            }).join('');
+            break;
+        case 'ativos':
+            headers = ['Nome', 'Valor', 'Valorização', 'Notas', 'Ações'];
+            rowsHtml = templates.map(t => `
+                <tr class="border-b">
+                    <td class="px-3 py-2 font-medium">${safe(t.nome)}</td>
+                    <td class="px-3 py-2">${formatarMoeda(Number(t.valor ?? 0), 'BRL')}</td>
+                    <td class="px-3 py-2">${safe(t.valorizacao || 'aprecia')}</td>
+                    <td class="px-3 py-2 text-gray-600">${safe(t.notas)}</td>
+                    <td class="px-3 py-2 text-right">
+                        <button class="text-blue-600 hover:underline mr-3" onclick="editarTemplate('ativos', ${t.id})">Editar</button>
+                        <button class="text-red-600 hover:underline" onclick="excluirTemplate('ativos', ${t.id})">Excluir</button>
+                    </td>
+                </tr>
+            `).join('');
+            break;
+        case 'passivos':
+            headers = ['Nome', 'Valor', 'Notas', 'Ações'];
+            rowsHtml = templates.map(t => `
+                <tr class="border-b">
+                    <td class="px-3 py-2 font-medium">${safe(t.nome)}</td>
+                    <td class="px-3 py-2">${formatarMoeda(Number(t.valor ?? 0), 'BRL')}</td>
+                    <td class="px-3 py-2 text-gray-600">${safe(t.notas)}</td>
+                    <td class="px-3 py-2 text-right">
+                        <button class="text-blue-600 hover:underline mr-3" onclick="editarTemplate('passivos', ${t.id})">Editar</button>
+                        <button class="text-red-600 hover:underline" onclick="excluirTemplate('passivos', ${t.id})">Excluir</button>
+                    </td>
+                </tr>
+            `).join('');
+            break;
+        default:
+            headers = ['Nome', 'Notas', 'Ações'];
+            rowsHtml = templates.map(t => `
+                <tr class="border-b">
+                    <td class="px-3 py-2 font-medium">${safe(t.nome || t.instituicao || '-')}</td>
+                    <td class="px-3 py-2 text-gray-600">${safe(t.notas)}</td>
+                    <td class="px-3 py-2 text-right">
+                        <button class="text-blue-600 hover:underline mr-3" onclick="editarTemplate('${tipo}', ${t.id})">Editar</button>
+                        <button class="text-red-600 hover:underline" onclick="excluirTemplate('${tipo}', ${t.id})">Excluir</button>
+                    </td>
+                </tr>
+            `).join('');
+    }
+    
+    const thead = `
+        <thead class="bg-gray-100 text-xs uppercase text-gray-600">
+            <tr>
+                ${headers.map(h => `<th class=\"px-3 py-2 text-left\">${h}</th>`).join('')}
+            </tr>
+        </thead>
+    `;
+    const tbody = `<tbody class="text-sm bg-white">${rowsHtml}</tbody>`;
+    return `
+        <div class="overflow-x-auto border rounded-md">
+            <table class="min-w-full table-auto">
+                ${thead}
+                ${tbody}
+            </table>
+        </div>
+    `;
+}
+
+function criarCardTemplate(tipo, template) {
+    let detalhes = '';
+    
+    switch (tipo) {
+        case 'receitas':
+            detalhes = `
+                <div class="text-sm text-gray-600">
+                    <span class="inline-block bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs mr-2">${template.categoria}</span>
+                    <span class="inline-block bg-gray-100 text-gray-700 px-2 py-1 rounded text-xs mr-2">${template.frequencia}</span>
+                    <span class="inline-block bg-green-100 text-green-800 px-2 py-1 rounded text-xs">${template.confiabilidade}</span>
+                </div>
+            `;
+            break;
+        case 'custos':
+            {
+                const centro = template.centro_custo || '';
+                detalhes = `
+                    <div class="text-sm text-gray-600">
+                        ${centro 
+                            ? `<span class="inline-block bg-red-100 text-red-800 px-2 py-1 rounded text-xs">${centro}</span>` 
+                            : `<span class="inline-block bg-red-100 text-red-800 px-2 py-1 rounded text-xs">Centro não definido</span>`}
+                    </div>
+                `;
+            }
+            break;
+        case 'investimentos':
+            const rendimentoPct = (typeof template.rendimento === 'number')
+                ? `${formatarPercentualInput(template.rendimento)}%`
+                : (template.rendimento ? `${template.rendimento}%` : '0,00%');
+            detalhes = `
+                <div class="text-sm text-gray-600">
+                    <span class="inline-block bg-yellow-100 text-yellow-800 px-2 py-1 rounded text-xs mr-2">${template.liquidez || ''}</span>
+                    <span class="inline-block bg-green-100 text-green-800 px-2 py-1 rounded text-xs mr-2">${rendimentoPct}</span>
+                    <span class="inline-block bg-gray-100 text-gray-700 px-2 py-1 rounded text-xs">${template.moeda || 'BRL'}</span>
+                </div>
+            `;
+            break;
+        case 'ativos':
+            {
+                const raw = template.valorizacao;
+                const numVal = (raw !== null && raw !== undefined) ? parseFloat(raw) : NaN;
+                const isNumericLike = !isNaN(numVal);
+                const dir = isNumericLike
+                    ? (numVal < 0 ? 'deprecia' : 'aprecia')
+                    : (raw === 'aprecia' ? 'aprecia' : 'deprecia');
+                const badgeClass = dir === 'aprecia' ? 'badge-aprecia' : 'badge-deprecia';
+                detalhes = `
+                    <div class="text-sm text-gray-600">
+                        <span class="${badgeClass} inline-block text-xs px-2 py-1 rounded">
+                            ${dir === 'aprecia' ? '📈 Aprecia' : '📉 Deprecia'}
+                        </span>
+                    </div>
+                `;
+            }
+            break;
+        case 'passivos':
+            detalhes = '';
+            break;
+    }
+    
+    const nome = tipo === 'investimentos' ? template.instituicao : template.nome;
+    
+    // Mostrar valor somente se preenchido (> 0)
+    const rawValor = template && template.valor !== undefined ? template.valor : null;
+    const numValor = rawValor !== null && rawValor !== '' ? parseFloat(rawValor) : NaN;
+    const temValor = !isNaN(numValor) && numValor > 0;
+    const moeda = template && template.moeda ? template.moeda : 'BRL';
+    const valorInlineHTML = temValor ? `<span class="ml-1 text-sm font-normal text-gray-700">- ${formatarMoeda(numValor, moeda)}</span>` : '';
+    
+    return `
+        <div class="template-card">
+            <div class="flex justify-between items-start">
+                <div class="flex-1">
+                    <h4 class="font-semibold text-gray-900">${nome} ${valorInlineHTML}</h4>
+                    ${detalhes}
+                    ${template.notas ? `<p class="text-sm text-gray-500 mt-2">${template.notas}</p>` : ''}
+                </div>
+                <div class="template-actions flex space-x-2 ml-4">
+                    <button onclick="editarTemplate('${tipo}', ${template.id})" 
+                            class="text-blue-600 hover:text-blue-800 text-sm">
+                        ✏️ Editar
+                    </button>
+                    <button onclick="excluirTemplate('${tipo}', ${template.id})" 
+                            class="text-red-600 hover:text-red-800 text-sm">
+                        🗑️ Excluir
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+// Funções para abrir modais de templates
+async function abrirModalTemplateReceita(templateId = null) {
+    const titulo = templateId ? 'Editar Template de Receita' : 'Novo Template de Receita';
+    const conteudo = `
+        <h2 class="text-xl font-semibold mb-4">${titulo}</h2>
+        <form id="formTemplateReceita">
+            <input type="hidden" id="template_id" value="${templateId || ''}">
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Nome da Receita</label>
+                    <input type="text" id="tr_nome" class="w-full border border-gray-300 rounded px-3 py-2" required>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Valor</label>
+                    <input type="text" id="tr_valor" class="w-full border border-gray-300 rounded px-3 py-2" placeholder="0,00">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Categoria</label>
+                    <select id="tr_categoria" class="w-full border border-gray-300 rounded px-3 py-2" required>
+                        <option value="">Selecione uma categoria</option>
+                        <option value="salário/emprego">Salário/Emprego</option>
+                        <option value="negócios">Negócios</option>
+                        <option value="investimentos">Investimentos</option>
+                        <option value="aluguel/locação">Aluguel/Locação</option>
+                        <option value="freelancer">Freelancer</option>
+                        <option value="factoring">Factoring</option>
+                        <option value="outros">Outros</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Frequência</label>
+                    <select id="tr_frequencia" class="w-full border border-gray-300 rounded px-3 py-2">
+                        <option value="mensal">Mensal</option>
+                        <option value="bimestral">Bimestral</option>
+                        <option value="trimestral">Trimestral</option>
+                        <option value="semestral">Semestral</option>
+                        <option value="anual">Anual</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Moeda</label>
+                    <select id="tr_moeda" class="w-full border border-gray-300 rounded px-3 py-2">
+                        <option value="BRL">BRL (Real)</option>
+                        <option value="USD">USD (Dólar)</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Confiabilidade</label>
+                    <select id="tr_confiabilidade" class="w-full border border-gray-300 rounded px-3 py-2">
+                        <option value="alta">Alta</option>
+                        <option value="baixa">Baixa</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Notas (opcional)</label>
+                <textarea id="tr_notas" class="w-full border border-gray-300 rounded px-3 py-2" rows="3"></textarea>
+            </div>
+            
+            <div class="flex justify-end space-x-3">
+                <button type="button" onclick="fecharModal()" class="px-4 py-2 text-gray-600 border border-gray-300 rounded hover:bg-gray-50">
+                    Cancelar
+                </button>
+                <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+                    ${templateId ? 'Atualizar' : 'Criar'} Template
+                </button>
+            </div>
+        </form>
+    `;
+    
+    abrirModal(conteudo);
+    // Popular categorias dinamicamente no modal de template
+    const selectCatTpl = document.getElementById('tr_categoria');
+    if (selectCatTpl) {
+        const categorias = getCategoriasReceita();
+        selectCatTpl.innerHTML = `<option value="">Selecione uma categoria</option>` +
+            (categorias || ['salário/emprego','negócios','investimentos','aluguel/locação','freelancer','factoring','outros'])
+                .map(c => `<option value="${c}">${c}</option>`).join('');
+    }
+
+    // Configurar máscara monetária
+    const valorTpl = document.getElementById('tr_valor');
+    if (valorTpl) configurarMascaraMonetaria(valorTpl);
+    
+    // Se for edição, carregar e preencher dados do template
+    if (templateId) {
+        try {
+            const tpl = await carregarDadosTemplate('receitas', templateId);
+            if (tpl) {
+                preencherFormularioTemplate('receitas', tpl);
+            }
+        } catch (e) {
+            console.error('Falha ao preencher template de receita:', e);
+        }
+    }
+    
+    // Configurar evento de submit
+    const form = document.getElementById('formTemplateReceita');
+    if (form) {
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            await salvarTemplateReceita();
+        });
+    }
+}
+
+async function salvarTemplateReceita() {
+    const templateId = document.getElementById('template_id').value;
+    const isEdit = templateId !== '';
+    
+    const payload = {
+        nome: document.getElementById('tr_nome').value,
+        valor: parseValorBrasileiro(document.getElementById('tr_valor').value),
+        categoria: document.getElementById('tr_categoria').value,
+        frequencia: document.getElementById('tr_frequencia').value,
+        moeda: document.getElementById('tr_moeda').value,
+        confiabilidade: document.getElementById('tr_confiabilidade').value,
+        notas: document.getElementById('tr_notas').value
+    };
+    
+    if (isEdit) {
+        payload.id = parseInt(templateId);
+    }
+    
+    try {
+        const method = isEdit ? 'PUT' : 'POST';
+        const response = await fetch(`api/templates.php?type=receitas`, {
+            method: method,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+            fecharModal();
+            carregarTemplates('receitas');
+            alert(isEdit ? 'Template atualizado com sucesso!' : 'Template criado com sucesso!');
+        } else {
+            alert('Erro: ' + result.error);
+        }
+    } catch (error) {
+        console.error('Erro ao salvar template:', error);
+        alert('Erro ao salvar template');
+    }
+}
+
+async function salvarTemplatePassivo() {
+    const templateId = document.getElementById('tp_template_id').value;
+    const isEdit = templateId !== '';
+    
+    const payload = {
+        nome: document.getElementById('tp_nome').value,
+        valor: parseValorBrasileiro(document.getElementById('tp_valor').value),
+        notas: document.getElementById('tp_notas').value
+    };
+    
+    if (isEdit) {
+        payload.id = parseInt(templateId);
+    }
+    
+    try {
+        const method = isEdit ? 'PUT' : 'POST';
+        const response = await fetch(`api/templates.php?type=passivos`, {
+            method: method,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+            fecharModal();
+            carregarTemplates('passivos');
+            alert(isEdit ? 'Template atualizado com sucesso!' : 'Template criado com sucesso!');
+        } else {
+            alert('Erro: ' + result.error);
+        }
+    } catch (error) {
+        console.error('Erro ao salvar template:', error);
+        alert('Erro ao salvar template');
+    }
+}
+
+// Função para carregar dados do template para edição
+async function carregarDadosTemplate(tipo, templateId) {
+    try {
+        const response = await fetch(`api/templates.php?type=${tipo}&id=${templateId}`);
+        const template = await response.json();
+        
+        if (response.ok) {
+            return template;
+        } else {
+            console.error('Erro ao carregar template:', template.error);
+            return null;
+        }
+    } catch (error) {
+        console.error('Erro ao carregar template:', error);
+        return null;
+    }
+}
+
+function preencherFormularioTemplate(tipo, template) {
+    switch (tipo) {
+        case 'receitas':
+            document.getElementById('tr_nome').value = template.nome || '';
+            document.getElementById('tr_valor').value = formatarValorInput(template.valor || 0);
+            {
+                const catSelect = document.getElementById('tr_categoria');
+                if (catSelect) {
+                    const desired = template.categoria || '';
+                    catSelect.value = desired;
+                    if (desired && catSelect.value !== desired) {
+                        const opt = document.createElement('option');
+                        opt.value = desired;
+                        opt.textContent = desired;
+                        catSelect.appendChild(opt);
+                        catSelect.value = desired;
+                    }
+                }
+            }
+            document.getElementById('tr_frequencia').value = template.frequencia || 'mensal';
+            document.getElementById('tr_moeda').value = template.moeda || 'BRL';
+            document.getElementById('tr_confiabilidade').value = template.confiabilidade || 'alta';
+            document.getElementById('tr_notas').value = template.notas || '';
+            break;
+        case 'custos':
+            document.getElementById('tc_nome').value = template.nome || '';
+            document.getElementById('tc_valor').value = formatarValorInput(template.valor || 0);
+            {
+                const centroSelect = document.getElementById('tc_centro_custo');
+                if (centroSelect) {
+                    const desired = template.centro_custo || '';
+                    centroSelect.value = desired;
+                    if (desired && centroSelect.value !== desired) {
+                        const opt = document.createElement('option');
+                        opt.value = desired;
+                        opt.textContent = desired;
+                        centroSelect.appendChild(opt);
+                        centroSelect.value = desired;
+                    }
+                }
+            }
+            document.getElementById('tc_frequencia').value = template.frequencia || 'mensal';
+            document.getElementById('tc_moeda').value = template.moeda || 'BRL';
+            document.getElementById('tc_notas').value = template.notas || '';
+            break;
+        case 'investimentos':
+            document.getElementById('ti_instituicao').value = template.instituicao || '';
+            document.getElementById('ti_valor').value = formatarValorInput(template.valor || 0);
+            document.getElementById('ti_moeda').value = template.moeda || 'BRL';
+            document.getElementById('ti_rendimento').value = formatarPercentualInput(template.rendimento || 0);
+            document.getElementById('ti_liquidez').value = template.liquidez || 'líquido';
+            document.getElementById('ti_notas').value = template.notas || '';
+            break;
+        case 'ativos':
+            document.getElementById('ta_nome').value = template.nome || '';
+            document.getElementById('ta_valor').value = formatarValorInput(template.valor || 0);
+            {
+                const val = template.valorizacao;
+                const numVal = (val !== null && val !== undefined) ? parseFloat(val) : NaN;
+                const isNumericLike = !isNaN(numVal);
+                const comportamento = isNumericLike
+                    ? (numVal < 0 ? 'deprecia' : 'aprecia')
+                    : (val === 'deprecia' ? 'deprecia' : 'aprecia');
+                const absVal = isNumericLike ? Math.abs(numVal) : null;
+                const percInput = document.getElementById('ta_valorizacao');
+                if (percInput) percInput.value = (absVal !== null) ? formatarPercentualInput(absVal || 0) : '';
+                const sel = document.getElementById('ta_comportamento');
+                if (sel) sel.value = comportamento;
+                // Padroniza como numérico para evitar envio de strings
+                const form = document.getElementById('formTemplateAtivo');
+                if (form) form.dataset.valorizacaoType = 'number';
+            }
+            document.getElementById('ta_notas').value = template.notas || '';
+            break;
+        case 'passivos':
+            document.getElementById('tp_nome').value = template.nome || '';
+            document.getElementById('tp_valor').value = formatarValorInput(template.valor || 0);
+            // Campo removido do modal de Template de Passivo; proteger acesso
+            const mesRefEl = document.getElementById('tp_mes_referencia');
+            if (mesRefEl) mesRefEl.value = template.mes_referencia || '';
+            document.getElementById('tp_notas').value = template.notas || '';
+            break;
+    }
+}
+
+// Funções para editar e excluir templates
+async function editarTemplate(tipo, templateId) {
+    switch (tipo) {
+        case 'receitas':
+            abrirModalTemplateReceita(templateId);
+            break;
+        case 'custos':
+            abrirModalTemplateCusto(templateId);
+            break;
+        case 'investimentos':
+            abrirModalTemplateInvestimento(templateId);
+            break;
+        case 'ativos':
+            abrirModalTemplateAtivo(templateId);
+            break;
+        case 'passivos':
+            abrirModalTemplatePassivo(templateId);
+            break;
+    }
+}
+
+async function excluirTemplate(tipo, templateId) {
+    if (!confirm('Tem certeza que deseja excluir este template?')) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`api/templates.php?type=${tipo}`, {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: templateId })
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+            carregarTemplates(tipo);
+            alert('Template excluído com sucesso!');
+        } else {
+            alert('Erro: ' + result.error);
+        }
+    } catch (error) {
+        console.error('Erro ao excluir template:', error);
+        alert('Erro ao excluir template');
+    }
+}
+
+// Funções placeholder para outros tipos de templates
+async function abrirModalTemplateCusto(templateId = null) {
+    const titulo = templateId ? 'Editar Template de Custo' : 'Novo Template de Custo';
+    
+    const conteudo = `
+        <h2 class="text-xl font-semibold mb-4">${titulo}</h2>
+        <form id="formTemplateCusto">
+            <input type="hidden" id="tc_template_id" value="${templateId || ''}">
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Nome do Custo</label>
+                    <input type="text" id="tc_nome" class="w-full border border-gray-300 rounded px-3 py-2" required>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Valor</label>
+                    <input type="text" id="tc_valor" class="w-full border border-gray-300 rounded px-3 py-2" placeholder="0,00">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Centro de Custo</label>
+                    <select id="tc_centro_custo" class="w-full border border-gray-300 rounded px-3 py-2" required>
+                        <option value="">Selecione um centro de custo</option>
+                        ${getCentrosCusto().map(centro => `<option value="${centro}">${centro}</option>`).join('')}
+                    </select>
+                </div>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Frequência</label>
+                    <select id="tc_frequencia" class="w-full border border-gray-300 rounded px-3 py-2">
+                        <option value="mensal">Mensal</option>
+                        <option value="bimestral">Bimestral</option>
+                        <option value="trimestral">Trimestral</option>
+                        <option value="semestral">Semestral</option>
+                        <option value="anual">Anual</option>
+                        <option value="eventual">Eventual</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Moeda</label>
+                    <select id="tc_moeda" class="w-full border border-gray-300 rounded px-3 py-2">
+                        <option value="BRL">BRL (Real)</option>
+                        <option value="USD">USD (Dólar)</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Notas (opcional)</label>
+                <textarea id="tc_notas" class="w-full border border-gray-300 rounded px-3 py-2" rows="3"></textarea>
+            </div>
+            
+            <div class="flex justify-end space-x-3">
+                <button type="button" onclick="fecharModal()" class="px-4 py-2 text-gray-600 border border-gray-300 rounded hover:bg-gray-50">
+                    Cancelar
+                </button>
+                <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+                    ${templateId ? 'Atualizar' : 'Criar'} Template
+                </button>
+            </div>
+        </form>
+    `;
+    
+    abrirModal(conteudo);
+    // Configurar máscara monetária
+    const valorTpl = document.getElementById('tc_valor');
+    if (valorTpl) configurarMascaraMonetaria(valorTpl);
+    
+    // Se for edição, carregar e preencher dados do template
+    if (templateId) {
+        try {
+            const tpl = await carregarDadosTemplate('custos', templateId);
+            if (tpl) {
+                preencherFormularioTemplate('custos', tpl);
+            }
+        } catch (e) {
+            console.error('Falha ao preencher template de custo:', e);
+        }
+    }
+    
+    // Configurar evento de submit
+    const form = document.getElementById('formTemplateCusto');
+    if (form) {
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            await salvarTemplateCusto();
+        });
+    }
+}
+
+async function salvarTemplateCusto() {
+    const templateId = document.getElementById('tc_template_id').value;
+    const isEdit = templateId !== '';
+    
+    const payload = {
+        nome: document.getElementById('tc_nome').value,
+        valor: parseValorBrasileiro(document.getElementById('tc_valor').value),
+        centro_custo: document.getElementById('tc_centro_custo').value,
+        frequencia: document.getElementById('tc_frequencia').value,
+        moeda: document.getElementById('tc_moeda').value,
+        notas: document.getElementById('tc_notas').value
+    };
+    
+    if (isEdit) {
+        payload.id = parseInt(templateId);
+    }
+    
+    try {
+        const method = isEdit ? 'PUT' : 'POST';
+        const response = await fetch(`api/templates.php?type=custos`, {
+            method: method,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+            fecharModal();
+            carregarTemplates('custos');
+            alert(isEdit ? 'Template atualizado com sucesso!' : 'Template criado com sucesso!');
+        } else {
+            alert('Erro: ' + result.error);
+        }
+    } catch (error) {
+        console.error('Erro ao salvar template:', error);
+        alert('Erro ao salvar template');
+    }
+}
+
+async function abrirModalTemplateInvestimento(templateId = null) {
+    const titulo = templateId ? 'Editar Template de Investimento' : 'Novo Template de Investimento';
+    
+    const conteudo = `
+        <h2 class="text-xl font-semibold mb-4">${titulo}</h2>
+        <form id="formTemplateInvestimento">
+            <input type="hidden" id="ti_template_id" value="${templateId || ''}">
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Instituição</label>
+                    <input type="text" id="ti_instituicao" class="w-full border border-gray-300 rounded px-3 py-2" required>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Valor</label>
+                    <input type="text" id="ti_valor" class="w-full border border-gray-300 rounded px-3 py-2" placeholder="0,00">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Moeda</label>
+                    <select id="ti_moeda" class="w-full border border-gray-300 rounded px-3 py-2">
+                        <option value="BRL">BRL (Real)</option>
+                        <option value="USD">USD (Dólar)</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Rendimento (%)</label>
+                    <input type="text" id="ti_rendimento" class="w-full border border-gray-300 rounded px-3 py-2" placeholder="0,00">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Liquidez</label>
+                    <select id="ti_liquidez" class="w-full border border-gray-300 rounded px-3 py-2">
+                        <option value="líquido">Líquido</option>
+                        <option value="conversível">Conversível</option>
+                        <option value="ilíquido">Ilíquido</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Notas (opcional)</label>
+                <textarea id="ti_notas" class="w-full border border-gray-300 rounded px-3 py-2" rows="3"></textarea>
+            </div>
+            
+            <div class="flex justify-end space-x-3">
+                <button type="button" onclick="fecharModal()" class="px-4 py-2 text-gray-600 border border-gray-300 rounded hover:bg-gray-50">
+                    Cancelar
+                </button>
+                <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+                    ${templateId ? 'Atualizar' : 'Criar'} Template
+                </button>
+            </div>
+        </form>
+    `;
+    
+    abrirModal(conteudo);
+    // Configurar máscaras monetária e percentual
+    const valorTpl = document.getElementById('ti_valor');
+    if (valorTpl) configurarMascaraMonetaria(valorTpl);
+    const rendTpl = document.getElementById('ti_rendimento');
+    if (rendTpl) configurarMascaraPercentual(rendTpl);
+    
+    // Se for edição, carregar e preencher dados do template
+    if (templateId) {
+        try {
+            const tpl = await carregarDadosTemplate('investimentos', templateId);
+            if (tpl) {
+                preencherFormularioTemplate('investimentos', tpl);
+            }
+        } catch (e) {
+            console.error('Falha ao preencher template de investimento:', e);
+        }
+    }
+    
+    // Configurar evento de submit
+    const form = document.getElementById('formTemplateInvestimento');
+    if (form) {
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            await salvarTemplateInvestimento();
+        });
+    }
+}
+
+async function salvarTemplateInvestimento() {
+    const templateId = document.getElementById('ti_template_id').value;
+    const isEdit = templateId !== '';
+    
+    const payload = {
+        instituicao: document.getElementById('ti_instituicao').value,
+        valor: parseValorBrasileiro(document.getElementById('ti_valor').value),
+        moeda: document.getElementById('ti_moeda').value,
+        rendimento: parseFloat(document.getElementById('ti_rendimento').value.replace(',', '.')) || 0,
+        liquidez: document.getElementById('ti_liquidez').value,
+        notas: document.getElementById('ti_notas').value
+    };
+    
+    if (isEdit) {
+        payload.id = parseInt(templateId);
+    }
+    
+    try {
+        const method = isEdit ? 'PUT' : 'POST';
+        const response = await fetch(`api/templates.php?type=investimentos`, {
+            method: method,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+            fecharModal();
+            carregarTemplates('investimentos');
+            alert(isEdit ? 'Template atualizado com sucesso!' : 'Template criado com sucesso!');
+        } else {
+            alert('Erro: ' + result.error);
+        }
+    } catch (error) {
+        console.error('Erro ao salvar template:', error);
+        alert('Erro ao salvar template');
+    }
+}
+
+async function abrirModalTemplateAtivo(templateId = null) {
+    const titulo = templateId ? 'Editar Template de Ativo' : 'Novo Template de Ativo';
+    
+    const conteudo = `
+        <h2 class="text-xl font-semibold mb-4">${titulo}</h2>
+        <form id="formTemplateAtivo">
+            <input type="hidden" id="ta_template_id" value="${templateId || ''}">
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Nome do Ativo</label>
+                    <input type="text" id="ta_nome" class="w-full border border-gray-300 rounded px-3 py-2" required>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Valor</label>
+                    <input type="text" id="ta_valor" class="w-full border border-gray-300 rounded px-3 py-2" placeholder="0,00">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Valorização (%)</label>
+                    <input type="text" id="ta_valorizacao" class="w-full border border-gray-300 rounded px-3 py-2" placeholder="0,00">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Comportamento</label>
+                    <select id="ta_comportamento" class="w-full border border-gray-300 rounded px-3 py-2">
+                        <option value="aprecia">Aprecia</option>
+                        <option value="deprecia">Deprecia</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Notas (opcional)</label>
+                <textarea id="ta_notas" class="w-full border border-gray-300 rounded px-3 py-2" rows="3"></textarea>
+            </div>
+            
+            <div class="flex justify-end space-x-3">
+                <button type="button" onclick="fecharModal()" class="px-4 py-2 text-gray-600 border border-gray-300 rounded hover:bg-gray-50">
+                    Cancelar
+                </button>
+                <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+                    ${templateId ? 'Atualizar' : 'Criar'} Template
+                </button>
+            </div>
+        </form>
+    `;
+    
+    abrirModal(conteudo);
+    // Configurar máscaras monetária e percentual
+    const valorTpl = document.getElementById('ta_valor');
+    if (valorTpl) configurarMascaraMonetaria(valorTpl);
+    const valTpl = document.getElementById('ta_valorizacao');
+    if (valTpl) configurarMascaraPercentual(valTpl);
+    
+    // Se for edição, carregar e preencher dados do template
+    if (templateId) {
+        try {
+            const tpl = await carregarDadosTemplate('ativos', templateId);
+            if (tpl) {
+                preencherFormularioTemplate('ativos', tpl);
+            }
+        } catch (e) {
+            console.error('Falha ao preencher template de ativo:', e);
+        }
+    }
+    
+    // Configurar evento de submit
+    const form = document.getElementById('formTemplateAtivo');
+    if (form) {
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            await salvarTemplateAtivo();
+        });
+    }
+}
+
+async function salvarTemplateAtivo() {
+    const templateId = document.getElementById('ta_template_id').value;
+    const isEdit = templateId !== '';
+    
+    const comportamento = document.getElementById('ta_comportamento')?.value || 'aprecia';
+    let perc = parseFloat((document.getElementById('ta_valorizacao').value || '').replace(',', '.'));
+    if (isNaN(perc)) perc = 0;
+    const percAbs = Math.abs(perc);
+    const valorizacaoDecimal = comportamento === 'deprecia' ? -percAbs : percAbs;
+    const payload = {
+        nome: document.getElementById('ta_nome').value,
+        valor: parseValorBrasileiro(document.getElementById('ta_valor').value),
+        valorizacao: valorizacaoDecimal,
+        notas: document.getElementById('ta_notas').value
+    };
+    
+    if (isEdit) {
+        payload.id = parseInt(templateId);
+    }
+    
+    try {
+        const method = isEdit ? 'PUT' : 'POST';
+        const response = await fetch(`api/templates.php?type=ativos`, {
+            method: method,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+            fecharModal();
+            carregarTemplates('ativos');
+            alert(isEdit ? 'Template atualizado com sucesso!' : 'Template criado com sucesso!');
+        } else {
+            alert('Erro: ' + result.error);
+        }
+    } catch (error) {
+        console.error('Erro ao salvar template:', error);
+        alert('Erro ao salvar template');
+    }
+}
+
+async function abrirModalTemplatePassivo(templateId = null) {
+    const titulo = templateId ? 'Editar Template de Passivo' : 'Novo Template de Passivo';
+    
+    const conteudo = `
+        <h2 class="text-xl font-semibold mb-4">${titulo}</h2>
+        <form id="formTemplatePassivo">
+            <input type="hidden" id="tp_template_id" value="${templateId || ''}">
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Nome do Passivo</label>
+                    <input type="text" id="tp_nome" class="w-full border border-gray-300 rounded px-3 py-2" required>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Valor</label>
+                    <input type="text" id="tp_valor" class="w-full border border-gray-300 rounded px-3 py-2" placeholder="0,00">
+                </div>
+            </div>
+            
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Notas (opcional)</label>
+                <textarea id="tp_notas" class="w-full border border-gray-300 rounded px-3 py-2" rows="3"></textarea>
+            </div>
+            
+            <div class="flex justify-end space-x-3">
+                <button type="button" onclick="fecharModal()" class="px-4 py-2 text-gray-600 border border-gray-300 rounded hover:bg-gray-50">
+                    Cancelar
+                </button>
+                <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+                    ${templateId ? 'Atualizar' : 'Criar'} Template
+                </button>
+            </div>
+        </form>
+    `;
+    
+    abrirModal(conteudo);
+    // Configurar máscara monetária
+    const valorTpl = document.getElementById('tp_valor');
+    if (valorTpl) configurarMascaraMonetaria(valorTpl);
+    
+    // Se for edição, carregar e preencher dados do template
+    if (templateId) {
+        try {
+            const tpl = await carregarDadosTemplate('passivos', templateId);
+            if (tpl) {
+                preencherFormularioTemplate('passivos', tpl);
+            }
+        } catch (e) {
+            console.error('Falha ao preencher template de passivo:', e);
+        }
+    }
+    
+    // Configurar evento de submit
+    const form = document.getElementById('formTemplatePassivo');
+    if (form) {
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            await salvarTemplatePassivo();
+        });
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
 
 // Funções de editar e excluir para Receitas
 function editarReceita(index) {
@@ -709,6 +1663,19 @@ function editarAtivo(index) {
         configurarMascaraMonetaria(valorInput);
     }
     
+    // Carregar templates de ativos
+    carregarTemplatesAtivo();
+    
+    // Event listener para seleção de template
+    const templateSelect = document.getElementById('atv_template');
+    if (templateSelect) {
+        templateSelect.addEventListener('change', function() {
+            if (this.value) {
+                preencherFormularioComTemplate('ativos', this.value);
+            }
+        });
+    }
+    
     const form = document.getElementById('formEditarAtivo');
     if (form) {
         form.addEventListener('submit', async (e) => {
@@ -870,6 +1837,10 @@ function abrirTab(tabId, updateHash = true) {
                 case 'ativos-passivos':
                     await atualizarGraficoAtivosPassivos();
                     break;
+                case 'configuracoes':
+                    // Carregar templates da primeira sub-aba (receitas) e ativar a primeira sub-aba
+                    abrirConfigTab('receitas');
+                    break;
             }
         }, 100); // Pequeno delay para garantir que o canvas esteja visível
     }
@@ -878,7 +1849,7 @@ function abrirTab(tabId, updateHash = true) {
 // Funções para gerenciar persistência de abas via hash
 function carregarAbaDoHash() {
     const hash = window.location.hash.substring(1); // Remove o #
-    const abasValidas = ['receitas', 'custos', 'investimentos', 'ativos-passivos'];
+    const abasValidas = ['receitas', 'custos', 'investimentos', 'ativos-passivos', 'configuracoes'];
     
     if (hash && abasValidas.includes(hash)) {
         abrirTab(hash, false); // false para não atualizar o hash novamente
@@ -1117,101 +2088,260 @@ function atualizarTitulosAbas() {
     if (tituloAtivosPassivos) tituloAtivosPassivos.textContent = `Ativos & Passivos ${mesFormatado}`;
 }
 
+// Ordenação de tabelas
+function ordenarTabela(tipo, chave) {
+    const cfg = estado.sort[tipo];
+    if (!cfg) return;
+    if (cfg.key === chave) {
+        cfg.dir = cfg.dir === 'asc' ? 'desc' : 'asc';
+    } else {
+        cfg.key = chave;
+        cfg.dir = 'asc';
+    }
+    if (tipo === 'receitas') atualizarReceitas();
+    else if (tipo === 'custos') atualizarCustos();
+    else if (tipo === 'investimentos') atualizarInvestimentos();
+    else if (tipo === 'ativos') atualizarAtivos();
+    else if (tipo === 'passivos') atualizarPassivos();
+}
+
+function getSortIndicator(tipo, chave) {
+    const cfg = estado.sort[tipo];
+    if (!cfg || cfg.key !== chave) return '';
+    return cfg.dir === 'asc' ? ' ▲' : ' ▼';
+}
+
+function sortDados(tipo, dados) {
+    const cfg = estado.sort[tipo];
+    if (!cfg || !cfg.key) return dados;
+    const key = cfg.key;
+    const dir = cfg.dir;
+    return [...dados].sort((a, b) => comparar(tipo, a, b, key, dir));
+}
+
+function comparar(tipo, a, b, key, dir) {
+    const va = valorOrdenacao(tipo, a, key);
+    const vb = valorOrdenacao(tipo, b, key);
+    let res;
+    if (typeof va === 'string' || typeof vb === 'string') {
+        res = String(va).localeCompare(String(vb), 'pt-BR', { numeric: true, sensitivity: 'base' });
+    } else {
+        res = (va || 0) - (vb || 0);
+    }
+    return dir === 'asc' ? res : -res;
+}
+
+function valorOrdenacao(tipo, item, key) {
+    switch (tipo) {
+        case 'receitas': {
+            const valorBRL = item.moeda === 'USD' ? item.valor * estado.cotacaoDolar : item.valor;
+            const valorUSD = item.moeda === 'USD' ? item.valor : 0;
+            const mapa = {
+                nome: item.nome?.toLowerCase() || '',
+                categoria: item.categoria?.toLowerCase() || '',
+                frequencia: item.frequencia?.toLowerCase() || '',
+                confiabilidade: item.confiabilidade?.toLowerCase() || '',
+                moeda: item.moeda || '',
+                valorBRL,
+                valorUSD,
+            };
+            return mapa[key];
+        }
+        case 'custos': {
+            const valorBRL = item.moeda === 'USD' ? item.valor * estado.cotacaoDolar : item.valor;
+            const valorUSD = item.moeda === 'USD' ? item.valor : 0;
+            const mapa = {
+                nome: item.nome?.toLowerCase() || '',
+                centroCusto: (item.centroCusto && item.centroCusto.trim()) ? item.centroCusto.toLowerCase() : 'centro não definido',
+                moeda: item.moeda || '',
+                valorBRL,
+                valorUSD,
+            };
+            return mapa[key];
+        }
+        case 'investimentos': {
+            const saldoBRL = item.moeda === 'BRL' ? item.saldo : item.saldo * estado.cotacaoDolar;
+            const saldoUSD = item.moeda === 'USD' ? item.saldo : item.saldo / estado.cotacaoDolar;
+            const rendimentoValor = saldoBRL * (item.rendimentoPercentual / 100);
+            const mapa = {
+                instituicao: item.instituicao?.toLowerCase() || '',
+                liquidez: item.liquidez?.toLowerCase() || '',
+                saldoBRL,
+                saldoUSD,
+                rendimentoPercentual: item.rendimentoPercentual || 0,
+                rendimentoValor,
+            };
+            return mapa[key];
+        }
+        case 'ativos': {
+            const mapa = {
+                nome: item.nome?.toLowerCase() || '',
+                valorizacao: item.valorizacao?.toLowerCase() || '',
+                valorBRL: item.valor || 0,
+            };
+            return mapa[key];
+        }
+        case 'passivos': {
+            const mapa = {
+                nome: item.nome?.toLowerCase() || '',
+                valorBRL: item.valor || 0,
+            };
+            return mapa[key];
+        }
+    }
+    return 0;
+}
+
 // Receitas
 function atualizarReceitas() {
     const container = document.getElementById('listaReceitas');
-    const totalElement = document.getElementById('totalReceitas');
     
     if (estado.receitas.length === 0) {
         container.innerHTML = '<p class="text-gray-500 text-center py-4">Nenhuma receita cadastrada</p>';
-        totalElement.textContent = 'R$ 0,00';
         return;
     }
     
     let total = 0;
-    let html = '';
+    let linhas = '';
+    const dados = sortDados('receitas', estado.receitas);
+    let totalBRL = 0;
+    let totalUSD = 0;
     
-    estado.receitas.forEach((receita, index) => {
+    dados.forEach((receita, index) => {
         const valorConvertido = receita.moeda === 'USD' ? receita.valor * estado.cotacaoDolar : receita.valor;
         total += valorConvertido;
-        
-        html += `
-            <div class="item-card fade-in">
-                <div class="flex justify-between items-start">
-                    <div>
-                        <h4 class="font-semibold">${receita.nome}</h4>
-                        <div class="text-sm text-gray-600">
-                            ${receita.categoria} • ${receita.frequencia}
-                            <span class="badge-${receita.confiabilidade === 'alta' ? 'alta' : 'baixa'} text-xs px-2 py-1 rounded ml-2">
-                                ${receita.confiabilidade}
-                            </span>
-                        </div>
-                        <div class="text-xs text-gray-500 mt-1">Mês de referência: ${formatarMesAno(receita.mes_ano || estado.mesAno)}</div>
-                        ${receita.notas ? `<p class="text-sm text-gray-500 mt-1">${receita.notas}</p>` : ''}
-                    </div>
-                    <div class="text-right">
-                        <div class="font-semibold">${formatarMoeda(valorConvertido, 'BRL')}</div>
-                        ${receita.moeda === 'USD' ? `<div class="text-xs text-gray-400">${formatarMoeda(receita.valor, 'USD')}</div>` : ''}
-                        <div class="text-sm text-gray-500">${receita.moeda}</div>
-                        <div class="mt-2 space-x-2">
-                            <button class="text-blue-600 hover:text-blue-800 text-sm" onclick="editarReceita(${index})">Editar</button>
-                            <button class="text-red-600 hover:text-red-800 text-sm" onclick="excluirReceita(${index})">Excluir</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
+        totalBRL += valorConvertido;
+        if (receita.moeda === 'USD') totalUSD += receita.valor;
+        const valorUSDCol = receita.moeda === 'USD' ? formatarMoeda(receita.valor, 'USD') : '-';
+        const confiabBadgeClass = receita.confiabilidade === 'alta' ? 'badge-alta' : 'badge-baixa';
+        linhas += `
+            <tr class="border-b">
+                <td class="px-3 py-2 font-medium">${receita.nome}</td>
+                <td class="px-3 py-2">${receita.categoria}</td>
+                <td class="px-3 py-2">${receita.frequencia}</td>
+                <td class="px-3 py-2"><span class="${confiabBadgeClass} text-xs px-2 py-1 rounded">${receita.confiabilidade}</span></td>
+                <td class="px-3 py-2">${receita.moeda}</td>
+                <td class="px-3 py-2 text-right font-semibold text-gray-800">${formatarMoeda(valorConvertido, 'BRL')}</td>
+                <td class="px-3 py-2 text-right text-gray-500">${valorUSDCol}</td>
+                <td class="px-3 py-2 text-gray-600">${receita.notas ? receita.notas : ''}</td>
+                <td class="px-3 py-2 text-right">
+                    <button class="text-blue-600 hover:text-blue-800 text-sm" onclick="editarReceita(${index})">Editar</button>
+                    <button class="text-red-600 hover:text-red-800 text-sm ml-2" onclick="excluirReceita(${index})">Excluir</button>
+                </td>
+            </tr>
         `;
     });
+    // Totais na última linha
+    linhas += `
+        <tr class="bg-gray-50 font-semibold">
+            <td class="px-3 py-2">Totais</td>
+            <td class="px-3 py-2"></td>
+            <td class="px-3 py-2"></td>
+            <td class="px-3 py-2"></td>
+            <td class="px-3 py-2"></td>
+            <td class="px-3 py-2 text-right">${formatarMoeda(totalBRL, 'BRL')}</td>
+            <td class="px-3 py-2 text-right">${formatarMoeda(totalUSD, 'USD')}</td>
+            <td class="px-3 py-2"></td>
+            <td class="px-3 py-2"></td>
+        </tr>
+    `;
     
-    container.innerHTML = `<div class="two-column-grid">${html}</div>`;
-    totalElement.textContent = formatarMoeda(total, 'BRL');
+    container.innerHTML = `
+        <div class="overflow-x-auto">
+            <table class="min-w-full text-sm">
+                <thead>
+                    <tr class="text-left bg-gray-50 border-b">
+                        <th class="px-3 py-2 cursor-pointer" onclick="ordenarTabela('receitas','nome')">Nome${getSortIndicator('receitas','nome')}</th>
+                        <th class="px-3 py-2 cursor-pointer" onclick="ordenarTabela('receitas','categoria')">Categoria${getSortIndicator('receitas','categoria')}</th>
+                        <th class="px-3 py-2 cursor-pointer" onclick="ordenarTabela('receitas','frequencia')">Frequência${getSortIndicator('receitas','frequencia')}</th>
+                        <th class="px-3 py-2 cursor-pointer" onclick="ordenarTabela('receitas','confiabilidade')">Confiabilidade${getSortIndicator('receitas','confiabilidade')}</th>
+                        <th class="px-3 py-2 cursor-pointer" onclick="ordenarTabela('receitas','moeda')">Moeda${getSortIndicator('receitas','moeda')}</th>
+                        <th class="px-3 py-2 text-right cursor-pointer" onclick="ordenarTabela('receitas','valorBRL')">Valor (BRL)${getSortIndicator('receitas','valorBRL')}</th>
+                        <th class="px-3 py-2 text-right cursor-pointer" onclick="ordenarTabela('receitas','valorUSD')">Valor (USD)${getSortIndicator('receitas','valorUSD')}</th>
+                        <th class="px-3 py-2">Notas</th>
+                        <th class="px-3 py-2 text-right">Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${linhas}
+                </tbody>
+            </table>
+        </div>
+    `;
+    // Total agora consta na última linha da tabela
 }
 
 // Custos
 function atualizarCustos() {
     const container = document.getElementById('listaCustos');
-    const totalElement = document.getElementById('totalCustos');
     
     if (estado.custos.length === 0) {
         container.innerHTML = '<p class="text-gray-500 text-center py-4">Nenhum custo cadastrado</p>';
-        totalElement.textContent = 'R$ 0,00';
         return;
     }
     
     let total = 0;
-    let html = '';
+    let linhas = '';
+    const dados = sortDados('custos', estado.custos);
+    let totalBRL = 0;
+    let totalUSD = 0;
     
-    estado.custos.forEach((custo, index) => {
+    dados.forEach((custo, index) => {
         const valorConvertido = custo.moeda === 'USD' ? custo.valor * estado.cotacaoDolar : custo.valor;
         total += valorConvertido;
-        
-        html += `
-            <div class="item-card fade-in">
-                <div class="flex justify-between items-start">
-                    <div>
-                        <h4 class="font-semibold">${custo.nome}</h4>
-                        <div class="text-sm text-gray-600">
-                            Centro de custo: ${custo.centroCusto}
-                        </div>
-                        <div class="text-xs text-gray-500 mt-1">Mês de referência: ${formatarMesAno(custo.mes_ano || estado.mesAno)}</div>
-                        ${custo.notas ? `<p class="text-sm text-gray-500 mt-1">${custo.notas}</p>` : ''}
-                    </div>
-                    <div class="text-right">
-                        <div class="font-semibold text-red-600">${formatarMoeda(valorConvertido, 'BRL')}</div>
-                        ${custo.moeda === 'USD' ? `<div class="text-xs text-gray-400">${formatarMoeda(custo.valor, 'USD')}</div>` : ''}
-                        <div class="text-sm text-gray-500">${custo.moeda}</div>
-                        <div class="mt-2 space-x-2">
-                            <button class="text-blue-600 hover:text-blue-800 text-sm" onclick="editarCusto(${index})">Editar</button>
-                            <button class="text-red-600 hover:text-red-800 text-sm" onclick="excluirCusto(${index})">Excluir</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
+        totalBRL += valorConvertido;
+        if (custo.moeda === 'USD') totalUSD += custo.valor;
+        const valorUSDCol = custo.moeda === 'USD' ? formatarMoeda(custo.valor, 'USD') : '-';
+        const centro = (custo.centroCusto && custo.centroCusto.trim()) ? custo.centroCusto : 'Centro não definido';
+        linhas += `
+            <tr class="border-b">
+                <td class="px-3 py-2 font-medium">${custo.nome}</td>
+                <td class="px-3 py-2"><span class="badge-deprecia text-xs px-2 py-1 rounded">${centro}</span></td>
+                <td class="px-3 py-2">${custo.moeda}</td>
+                <td class="px-3 py-2 text-right font-semibold text-red-600">${formatarMoeda(valorConvertido, 'BRL')}</td>
+                <td class="px-3 py-2 text-right text-gray-500">${valorUSDCol}</td>
+                <td class="px-3 py-2 text-gray-600">${custo.notas ? custo.notas : ''}</td>
+                <td class="px-3 py-2 text-right">
+                    <button class="text-blue-600 hover:text-blue-800 text-sm" onclick="editarCusto(${index})">Editar</button>
+                    <button class="text-red-600 hover:text-red-800 text-sm ml-2" onclick="excluirCusto(${index})">Excluir</button>
+                </td>
+            </tr>
         `;
     });
+    // Totais na última linha
+    linhas += `
+        <tr class="bg-gray-50 font-semibold">
+            <td class="px-3 py-2">Totais</td>
+            <td class="px-3 py-2"></td>
+            <td class="px-3 py-2"></td>
+            <td class="px-3 py-2 text-right">${formatarMoeda(totalBRL, 'BRL')}</td>
+            <td class="px-3 py-2 text-right">${formatarMoeda(totalUSD, 'USD')}</td>
+            <td class="px-3 py-2"></td>
+            <td class="px-3 py-2"></td>
+        </tr>
+    `;
     
-    container.innerHTML = `<div class="two-column-grid">${html}</div>`;
-    totalElement.textContent = formatarMoeda(total, 'BRL');
+    container.innerHTML = `
+        <div class="overflow-x-auto">
+            <table class="min-w-full text-sm">
+                <thead>
+                    <tr class="text-left bg-gray-50 border-b">
+                        <th class="px-3 py-2 cursor-pointer" onclick="ordenarTabela('custos','nome')">Nome${getSortIndicator('custos','nome')}</th>
+                        <th class="px-3 py-2 cursor-pointer" onclick="ordenarTabela('custos','centroCusto')">Centro de Custo${getSortIndicator('custos','centroCusto')}</th>
+                        <th class="px-3 py-2 cursor-pointer" onclick="ordenarTabela('custos','moeda')">Moeda${getSortIndicator('custos','moeda')}</th>
+                        <th class="px-3 py-2 text-right cursor-pointer" onclick="ordenarTabela('custos','valorBRL')">Valor (BRL)${getSortIndicator('custos','valorBRL')}</th>
+                        <th class="px-3 py-2 text-right cursor-pointer" onclick="ordenarTabela('custos','valorUSD')">Valor (USD)${getSortIndicator('custos','valorUSD')}</th>
+                        <th class="px-3 py-2">Notas</th>
+                        <th class="px-3 py-2 text-right">Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${linhas}
+                </tbody>
+            </table>
+        </div>
+    `;
+    // Total agora consta na última linha da tabela
 }
 
 // Investimentos
@@ -1220,62 +2350,84 @@ function atualizarInvestimentos() {
     
     if (estado.investimentos.length === 0) {
         container.innerHTML = '<p class="text-gray-500 text-center py-4">Nenhum investimento cadastrado</p>';
-        atualizarTotaisInvestimentos();
         return;
     }
     
-    let html = '';
-    estado.investimentos.forEach((investimento, index) => {
+    let linhas = '';
+    const threshold = getInvestListFlag();
+    const dados = sortDados('investimentos', estado.investimentos);
+    let somaSaldosBRL = 0;
+    let somaSaldosUSD = 0;
+    let somaRendimentos = 0;
+    let somaPercentuais = 0;
+    dados.forEach((investimento, index) => {
         const saldoBRL = investimento.moeda === 'BRL' ? investimento.saldo : investimento.saldo * estado.cotacaoDolar;
         const saldoUSD = investimento.moeda === 'USD' ? investimento.saldo : investimento.saldo / estado.cotacaoDolar;
         const rendimentoValor = saldoBRL * (investimento.rendimentoPercentual / 100);
-        
-        html += `
-            <div class="investment-card fade-in">
-                <div class="flex justify-between items-start mb-3">
-                    <div>
-                        <h4 class="font-semibold text-lg">${investimento.instituicao}</h4>
-                        <div class="text-xs text-gray-500 mt-1">Mês de referência: ${formatarMesAno(investimento.mes_ano || estado.mesAno)}</div>
-                    </div>
-                    <span class="badge-${investimento.liquidez} text-xs px-2 py-1 rounded">
-                        ${investimento.liquidez}
-                    </span>
-                </div>
-                
-                <div class="grid grid-cols-2 gap-4 mb-3">
-                    <div>
-                        <div class="text-sm text-gray-600">Saldo BRL</div>
-                        <div class="font-semibold text-green-600">${formatarMoeda(saldoBRL, 'BRL')}</div>
-                        ${investimento.moeda === 'USD' ? '<div class="text-xs text-gray-400">(convertido)</div>' : ''}
-                    </div>
-                    <div>
-                        <div class="text-sm text-gray-600">Saldo USD</div>
-                        <div class="font-semibold text-blue-600">${formatarMoeda(saldoUSD, 'USD')}</div>
-                        ${investimento.moeda === 'USD' ? '<div class="text-xs text-gray-400">(original)</div>' : '<div class="text-xs text-gray-400">(convertido)</div>'}
-                    </div>
-                </div>
-                
-                <div class="grid grid-cols-2 gap-4 mb-3">
-                    <div>
-                        <div class="text-sm text-gray-600">Rendimento (%)</div>
-                        <div class="font-semibold">${investimento.rendimentoPercentual.toFixed(2)}%</div>
-                    </div>
-                    <div>
-                        <div class="text-sm text-gray-600">Rendimento (R$)</div>
-                        <div class="font-semibold text-purple-600">${formatarMoeda(rendimentoValor, 'BRL')}</div>
-                    </div>
-                </div>
-                
-                <div class="flex justify-end space-x-2 pt-2 border-t">
+        somaSaldosBRL += saldoBRL;
+        somaSaldosUSD += saldoUSD;
+        somaRendimentos += rendimentoValor;
+        somaPercentuais += investimento.rendimentoPercentual;
+        const pct = parseFloat(investimento.rendimentoPercentual || 0) || 0;
+        const rowClass = (pct === 0) ? 'bg-red-50' : (pct < threshold ? 'bg-orange-50' : '');
+        linhas += `
+            <tr class="border-b ${rowClass}">
+                <td class="px-3 py-2 font-medium">${investimento.instituicao}</td>
+                <td class="px-3 py-2"><span class="badge-${investimento.liquidez} text-xs px-2 py-1 rounded">${investimento.liquidez}</span></td>
+                <td class="px-3 py-2 text-right text-green-600 font-semibold">${formatarMoeda(saldoBRL, 'BRL')}</td>
+                <td class="px-3 py-2 text-right text-gray-600">${formatarMoeda(saldoUSD, 'USD')}</td>
+                <td class="px-3 py-2">${pct.toFixed(2)}%</td>
+                <td class="px-3 py-2 text-right text-purple-600 font-semibold">${formatarMoeda(rendimentoValor, 'BRL')}</td>
+                <td class="px-3 py-2 text-right">
                     <button class="text-blue-600 hover:text-blue-800 text-sm" onclick="editarInvestimento(${index})">Editar</button>
-                    <button class="text-red-600 hover:text-red-800 text-sm" onclick="excluirInvestimento(${index})">Excluir</button>
-                </div>
-            </div>
+                    <button class="text-red-600 hover:text-red-800 text-sm ml-2" onclick="excluirInvestimento(${index})">Excluir</button>
+                </td>
+            </tr>
         `;
     });
+    const mediaRendimentos = dados.length > 0 ? (somaPercentuais / dados.length) : 0;
+    // Totais/Médias na última linha
+    linhas += `
+        <tr class="bg-gray-50 font-semibold">
+            <td class="px-3 py-2">Totais/Médias</td>
+            <td class="px-3 py-2"></td>
+            <td class="px-3 py-2 text-right">${formatarMoeda(somaSaldosBRL, 'BRL')}</td>
+            <td class="px-3 py-2 text-right">${formatarMoeda(somaSaldosUSD, 'USD')}</td>
+            <td class="px-3 py-2">${mediaRendimentos.toFixed(2)}%</td>
+            <td class="px-3 py-2 text-right">${formatarMoeda(somaRendimentos, 'BRL')}</td>
+            <td class="px-3 py-2"></td>
+        </tr>
+    `;
     
-    container.innerHTML = `<div class="investment-cards-grid">${html}</div>`;
-    atualizarTotaisInvestimentos();
+    const toolbarHtml = `
+        <div class="flex items-center justify-end p-2">
+            <label class="text-sm text-gray-700 mr-2">Flag</label>
+            <input id="inv_list_flag_threshold" type="number" step="0.01" min="0" class="w-20 border border-gray-300 rounded px-2 py-1" value="${getInvestListFlag()}" oninput="window.updateInvestFlag(this.value)">
+            <span class="ml-1 text-sm text-gray-500">%</span>
+        </div>
+    `;
+    container.innerHTML = `
+        <div class="overflow-x-auto border rounded-md">
+            ${toolbarHtml}
+            <table class="min-w-full text-sm">
+                <thead>
+                    <tr class="text-left bg-gray-50 border-b">
+                        <th class="px-3 py-2 cursor-pointer" onclick="ordenarTabela('investimentos','instituicao')">Instituição${getSortIndicator('investimentos','instituicao')}</th>
+                        <th class="px-3 py-2 cursor-pointer" onclick="ordenarTabela('investimentos','liquidez')">Liquidez${getSortIndicator('investimentos','liquidez')}</th>
+                        <th class="px-3 py-2 text-right cursor-pointer" onclick="ordenarTabela('investimentos','saldoBRL')">Saldo (BRL)${getSortIndicator('investimentos','saldoBRL')}</th>
+                        <th class="px-3 py-2 text-right cursor-pointer" onclick="ordenarTabela('investimentos','saldoUSD')">Saldo (USD)${getSortIndicator('investimentos','saldoUSD')}</th>
+                        <th class="px-3 py-2 cursor-pointer" onclick="ordenarTabela('investimentos','rendimentoPercentual')">Rendimento (%)${getSortIndicator('investimentos','rendimentoPercentual')}</th>
+                        <th class="px-3 py-2 text-right cursor-pointer" onclick="ordenarTabela('investimentos','rendimentoValor')">Rendimento (R$)${getSortIndicator('investimentos','rendimentoValor')}</th>
+                        <th class="px-3 py-2 text-right">Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${linhas}
+                </tbody>
+            </table>
+        </div>
+    `;
+    // Totais/Médias agora constam na última linha da tabela
 }
 
 function atualizarTotaisInvestimentos() {
@@ -1312,87 +2464,122 @@ function atualizarAtivosPassivos() {
 
 function atualizarAtivos() {
     const container = document.getElementById('listaAtivos');
-    const totalElement = document.getElementById('totalAtivos');
     
     if (estado.ativos.length === 0) {
         container.innerHTML = '<p class="text-gray-500 text-center py-4">Nenhum ativo cadastrado</p>';
-        totalElement.textContent = 'R$ 0,00';
         return;
     }
     
     let total = 0;
-    let html = '';
+    let linhas = '';
+    const dados = sortDados('ativos', estado.ativos);
+    let totalBRL = 0;
     
-    estado.ativos.forEach((ativo, index) => {
+    dados.forEach((ativo, index) => {
         total += ativo.valor;
-        
-        html += `
-            <div class="item-card fade-in">
-                <div class="flex justify-between items-start">
-                    <div>
-                        <h4 class="font-semibold">${ativo.nome}</h4>
-                        <div class="text-sm text-gray-600">
-                            <span class="badge-${ativo.valorizacao} text-xs px-2 py-1 rounded">
-                                ${ativo.valorizacao}
-                            </span>
-                        </div>
-                        <div class="text-xs text-gray-500 mt-1">Mês de referência: ${formatarMesAno(ativo.mes_ano || estado.mesAno)}</div>
-                        ${ativo.notas ? `<p class="text-sm text-gray-500 mt-1">${ativo.notas}</p>` : ''}
-                    </div>
-                    <div class="text-right">
-                        <div class="font-semibold text-green-600">${formatarMoeda(ativo.valor, 'BRL')}</div>
-                        <div class="mt-2 space-x-2">
-                            <button class="text-blue-600 hover:text-blue-800 text-sm" onclick="editarAtivo(${index})">Editar</button>
-                            <button class="text-red-600 hover:text-red-800 text-sm" onclick="excluirAtivo(${index})">Excluir</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
+        totalBRL += ativo.valor;
+        linhas += `
+            <tr class="border-b">
+                <td class="px-3 py-2 font-medium">${ativo.nome}</td>
+                <td class="px-3 py-2"><span class="badge-${ativo.valorizacao} text-xs px-2 py-1 rounded">${ativo.valorizacao}</span></td>
+                <td class="px-3 py-2 text-right text-green-600 font-semibold">${formatarMoeda(ativo.valor, 'BRL')}</td>
+                <td class="px-3 py-2 text-gray-600">${ativo.notas ? ativo.notas : ''}</td>
+                <td class="px-3 py-2 text-right">
+                    <button class="text-blue-600 hover:text-blue-800 text-sm" onclick="editarAtivo(${index})">Editar</button>
+                    <button class="text-red-600 hover:text-red-800 text-sm ml-2" onclick="excluirAtivo(${index})">Excluir</button>
+                </td>
+            </tr>
         `;
     });
+    // Totais na última linha
+    linhas += `
+        <tr class="bg-gray-50 font-semibold">
+            <td class="px-3 py-2">Totais</td>
+            <td class="px-3 py-2"></td>
+            <td class="px-3 py-2 text-right">${formatarMoeda(totalBRL, 'BRL')}</td>
+            <td class="px-3 py-2"></td>
+            <td class="px-3 py-2"></td>
+        </tr>
+    `;
     
-    container.innerHTML = `<div class="two-column-grid">${html}</div>`;
-    totalElement.textContent = formatarMoeda(total, 'BRL');
+    container.innerHTML = `
+        <div class="overflow-x-auto">
+            <table class="min-w-full text-sm">
+                <thead>
+                    <tr class="text-left bg-gray-50 border-b">
+                        <th class="px-3 py-2 cursor-pointer" onclick="ordenarTabela('ativos','nome')">Nome${getSortIndicator('ativos','nome')}</th>
+                        <th class="px-3 py-2 cursor-pointer" onclick="ordenarTabela('ativos','valorizacao')">Valorização${getSortIndicator('ativos','valorizacao')}</th>
+                        <th class="px-3 py-2 text-right cursor-pointer" onclick="ordenarTabela('ativos','valorBRL')">Valor (BRL)${getSortIndicator('ativos','valorBRL')}</th>
+                        <th class="px-3 py-2">Notas</th>
+                        <th class="px-3 py-2 text-right">Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${linhas}
+                </tbody>
+            </table>
+        </div>
+    `;
+    // Total agora consta na última linha da tabela
 }
 
 function atualizarPassivos() {
     const container = document.getElementById('listaPassivos');
-    const totalElement = document.getElementById('totalPassivos');
     
     if (estado.passivos.length === 0) {
         container.innerHTML = '<p class="text-gray-500 text-center py-4">Nenhum passivo cadastrado</p>';
-        totalElement.textContent = 'R$ 0,00';
         return;
     }
     
     let total = 0;
-    let html = '';
+    let linhas = '';
+    const dados = sortDados('passivos', estado.passivos);
+    let totalBRL = 0;
     
-    estado.passivos.forEach((passivo, index) => {
+    dados.forEach((passivo, index) => {
         total += passivo.valor;
-        
-        html += `
-            <div class="item-card fade-in">
-                <div class="flex justify-between items-start">
-                    <div>
-                        <h4 class="font-semibold">${passivo.nome}</h4>
-                        <div class="text-xs text-gray-500 mt-1">Mês de referência: ${formatarMesAno(passivo.mes_ano || estado.mesAno)}</div>
-                        ${passivo.notas ? `<p class="text-sm text-gray-500 mt-1">${passivo.notas}</p>` : ''}
-                    </div>
-                    <div class="text-right">
-                        <div class="font-semibold ${passivo.valor < 0 ? 'text-green-600' : 'text-red-600'}">${formatarMoeda(passivo.valor, 'BRL')}</div>
-                        <div class="mt-2 space-x-2">
-                            <button class="text-blue-600 hover:text-blue-800 text-sm" onclick="editarPassivo(${index})">Editar</button>
-                            <button class="text-red-600 hover:text-red-800 text-sm" onclick="excluirPassivo(${index})">Excluir</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
+        totalBRL += passivo.valor;
+        const valorClass = passivo.valor < 0 ? 'text-green-600' : 'text-red-600';
+        linhas += `
+            <tr class="border-b">
+                <td class="px-3 py-2 font-medium">${passivo.nome}</td>
+                <td class="px-3 py-2 text-right ${valorClass} font-semibold">${formatarMoeda(passivo.valor, 'BRL')}</td>
+                <td class="px-3 py-2 text-gray-600">${passivo.notas ? passivo.notas : ''}</td>
+                <td class="px-3 py-2 text-right">
+                    <button class="text-blue-600 hover:text-blue-800 text-sm" onclick="editarPassivo(${index})">Editar</button>
+                    <button class="text-red-600 hover:text-red-800 text-sm ml-2" onclick="excluirPassivo(${index})">Excluir</button>
+                </td>
+            </tr>
         `;
     });
+    // Totais na última linha
+    linhas += `
+        <tr class="bg-gray-50 font-semibold">
+            <td class="px-3 py-2">Totais</td>
+            <td class="px-3 py-2 text-right">${formatarMoeda(totalBRL, 'BRL')}</td>
+            <td class="px-3 py-2"></td>
+            <td class="px-3 py-2"></td>
+        </tr>
+    `;
     
-    container.innerHTML = `<div class="two-column-grid">${html}</div>`;
-    totalElement.textContent = formatarMoeda(total, 'BRL');
+    container.innerHTML = `
+        <div class="overflow-x-auto">
+            <table class="min-w-full text-sm">
+                <thead>
+                    <tr class="text-left bg-gray-50 border-b">
+                        <th class="px-3 py-2 cursor-pointer" onclick="ordenarTabela('passivos','nome')">Nome${getSortIndicator('passivos','nome')}</th>
+                        <th class="px-3 py-2 text-right cursor-pointer" onclick="ordenarTabela('passivos','valorBRL')">Valor (BRL)${getSortIndicator('passivos','valorBRL')}</th>
+                        <th class="px-3 py-2">Notas</th>
+                        <th class="px-3 py-2 text-right">Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${linhas}
+                </tbody>
+            </table>
+        </div>
+    `;
+    // Total agora consta na última linha da tabela
 }
 
 // Resumo Patrimonial
@@ -2188,7 +3375,29 @@ async function atualizarGraficoCustos() {
     
     const valores = dados.filter(v => typeof v === 'number' && !isNaN(v));
     const maxValor = valores.length ? Math.max(...valores) : 0;
-    const escalaMaxima = 4000;
+    // Define escala dinâmica "agradável" com margem pequena e fatores 1/2/2.5/5/10
+    function calcularEscalaY(valorMaximo) {
+        if (!valorMaximo || valorMaximo <= 0) {
+            return { max: 1000, step: 200 };
+        }
+        const factors = [1, 2, 2.5, 5, 10];
+        const alvo = valorMaximo * 1.10; // margem de 10% para ficar "um pouco acima"
+        const pow = Math.pow(10, Math.floor(Math.log10(alvo)));
+        const unidades = alvo / pow;
+        const fatorMax = factors.find(f => unidades <= f) || 10;
+        const max = fatorMax * pow;
+
+        // Objetivar ~5-6 ticks com step também "agradável"
+        const desiredTicks = 5;
+        const stepRaw = max / desiredTicks;
+        const stepPow = Math.pow(10, Math.floor(Math.log10(stepRaw)));
+        const stepUnits = stepRaw / stepPow;
+        const fatorStep = factors.find(f => stepUnits <= f) || 10;
+        const step = Math.max(50, fatorStep * stepPow);
+
+        return { max, step };
+    }
+    const { max: escalaMaxima, step: escalaStep } = calcularEscalaY(maxValor);
 
     if (!graficoCustos) {
         graficoCustos = new Chart(ctx, {
@@ -2214,7 +3423,7 @@ async function atualizarGraficoCustos() {
                         max: escalaMaxima,
                         ticks: {
                             callback: function(value) { return formatarMoeda(value); },
-                            stepSize: 1000,
+                            stepSize: escalaStep,
                             maxTicksLimit: 6
                         }
                     }
@@ -2234,6 +3443,7 @@ async function atualizarGraficoCustos() {
         graficoCustos.data.labels = labels;
         graficoCustos.data.datasets[0].data = dados;
         graficoCustos.options.scales.y.max = escalaMaxima;
+        graficoCustos.options.scales.y.ticks.stepSize = escalaStep;
         graficoCustos.update();
     }
 }
@@ -2649,6 +3859,12 @@ function abrirModalReceita() {
         <h3 class="text-lg font-semibold mb-4">Nova Receita</h3>
         <form id="formReceita" class="space-y-3">
             <div>
+                <label class="form-label">Template (opcional)</label>
+                <select id="rec_template" class="form-input">
+                    <option value="">Selecione um template ou preencha manualmente</option>
+                </select>
+            </div>
+            <div>
                 <label class="form-label">Nome</label>
                 <input type="text" id="rec_nome" class="form-input" required>
             </div>
@@ -2659,7 +3875,7 @@ function abrirModalReceita() {
             <div class="grid grid-cols-2 gap-3">
                 <div>
                     <label class="form-label">Valor</label>
-                    <input type="number" step="0.01" id="rec_valor" class="form-input" required>
+                    <input type="text" id="rec_valor" class="form-input" required>
                 </div>
                 <div>
                     <label class="form-label">Moeda</label>
@@ -2704,6 +3920,19 @@ function abrirModalReceita() {
         configurarMascaraMonetaria(valorInput);
     }
     
+    // Carregar templates de receitas
+    carregarTemplatesReceita();
+    
+    // Configurar evento de seleção de template
+    const templateSelect = document.getElementById('rec_template');
+    if (templateSelect) {
+        templateSelect.addEventListener('change', function() {
+            if (this.value) {
+                preencherFormularioComTemplate('receitas', this.value);
+            }
+        });
+    }
+    
     const form = document.getElementById('formReceita');
     if (form) {
         form.addEventListener('submit', async (e) => {
@@ -2731,10 +3960,102 @@ function abrirModalReceita() {
     }
 }
 
+// Funções auxiliares para templates em modais
+async function carregarTemplatesReceita() {
+    try {
+        const response = await fetch('api/templates.php?type=receitas');
+        const templates = await response.json();
+        
+        const selectTemplate = document.getElementById('rec_template');
+        if (selectTemplate) {
+            selectTemplate.innerHTML = '<option value="">Selecione um template ou preencha manualmente</option>';
+            if (response.ok && templates.length > 0) {
+                templates.forEach(template => {
+                    const option = document.createElement('option');
+                    option.value = template.id;
+                    option.textContent = template.nome;
+                    selectTemplate.appendChild(option);
+                });
+            }
+        }
+    } catch (error) {
+        console.error('Erro ao carregar templates de receitas:', error);
+    }
+}
+
+async function preencherFormularioComTemplate(tipo, templateId) {
+    try {
+        const template = await carregarDadosTemplate(tipo, templateId);
+        if (template) {
+            // Preencher campos do formulário de receita
+            if (tipo === 'receitas') {
+                document.getElementById('rec_nome').value = template.nome || '';
+                document.getElementById('rec_categoria').value = template.categoria || '';
+                document.getElementById('rec_valor').value = formatarValorInput(template.valor || 0);
+                document.getElementById('rec_moeda').value = template.moeda || 'BRL';
+                document.getElementById('rec_conf').value = template.confiabilidade || 'alta';
+                document.getElementById('rec_notas').value = template.notas || '';
+            }
+            // Preencher campos do formulário de custo
+            else if (tipo === 'custos') {
+                document.getElementById('cus_nome').value = template.nome || '';
+                document.getElementById('cus_valor').value = formatarValorInput(template.valor || 0);
+                document.getElementById('cus_moeda').value = template.moeda || 'BRL';
+                document.getElementById('cus_centro').value = template.centro_custo || '';
+                document.getElementById('cus_notas').value = template.notas || '';
+            }
+            // Preencher campos do formulário de investimento
+            else if (tipo === 'investimentos') {
+                document.getElementById('inv_inst').value = template.instituicao || '';
+                // Preencher saldo a partir de "valor" do template, quando disponível
+                const saldoEl = document.getElementById('inv_saldo');
+                if (saldoEl) {
+                    saldoEl.value = formatarValorInput(template.valor || 0);
+                }
+                document.getElementById('inv_moeda').value = template.moeda || 'BRL';
+                // Suportar ambos os nomes: "rendimento" e "rendimento_percentual"
+                const rendimentoBruto = (template.rendimento !== undefined && template.rendimento !== null)
+                    ? template.rendimento
+                    : template.rendimento_percentual;
+                document.getElementById('inv_rend').value = formatarPercentualInput(rendimentoBruto || 0);
+                document.getElementById('inv_liq').value = template.liquidez || 'líquido';
+                document.getElementById('inv_notas').value = template.notas || '';
+            }
+            // Preencher campos do formulário de ativo
+            else if (tipo === 'ativos') {
+                document.getElementById('atv_nome').value = template.nome || '';
+                document.getElementById('atv_valor').value = formatarValorInput(template.valor || 0);
+                // Não há campo de avaliação/percentual no formulário de Ativos.
+                // O select existente é 'atv_val' (aprecia/deprecia), que não mapeia
+                // diretamente a um percentual de valorização do template.
+                document.getElementById('atv_notas').value = template.notas || '';
+            }
+            // Preencher campos do formulário de passivo
+            else if (tipo === 'passivos') {
+                document.getElementById('psv_nome').value = template.nome || '';
+                document.getElementById('psv_valor').value = formatarValorInput(template.valor || 0);
+                document.getElementById('psv_notas').value = template.notas || '';
+                const mesEl = document.getElementById('psv_mes_referencia');
+                if (mesEl && template.mes_referencia) {
+                    mesEl.value = template.mes_referencia;
+                }
+            }
+        }
+    } catch (error) {
+        console.log('Erro ao carregar dados do template:', error);
+    }
+}
+
 function abrirModalCusto() {
     abrirModal(`
         <h3 class="text-lg font-semibold mb-4">Novo Custo</h3>
         <form id="formCusto" class="space-y-3">
+            <div>
+                <label class="form-label">Template (opcional)</label>
+                <select id="cus_template" class="form-input">
+                    <option value="">Selecione um template ou preencha manualmente</option>
+                </select>
+            </div>
             <div>
                 <label class="form-label">Nome</label>
                 <input type="text" id="cus_nome" class="form-input" required>
@@ -2742,7 +4063,7 @@ function abrirModalCusto() {
             <div class="grid grid-cols-2 gap-3">
                 <div>
                     <label class="form-label">Valor</label>
-                    <input type="number" step="0.01" id="cus_valor" class="form-input" required>
+                    <input type="text" id="cus_valor" class="form-input" required>
                 </div>
                 <div>
                     <label class="form-label">Moeda</label>
@@ -2786,6 +4107,19 @@ function abrirModalCusto() {
         configurarMascaraMonetaria(valorInput);
     }
     
+    // Carregar templates de custos
+    carregarTemplatesCusto();
+    
+    // Configurar evento de seleção de template
+    const templateSelect = document.getElementById('cus_template');
+    if (templateSelect) {
+        templateSelect.addEventListener('change', function() {
+            if (this.value) {
+                preencherFormularioComTemplate('custos', this.value);
+            }
+        });
+    }
+    
     const form = document.getElementById('formCusto');
     if (form) {
         form.addEventListener('submit', async (e) => {
@@ -2818,10 +4152,37 @@ function abrirModalCusto() {
     }
 }
 
+async function carregarTemplatesCusto() {
+    try {
+        const response = await fetch('api/templates.php?type=custos');
+        const templates = await response.json();
+        const selectTemplate = document.getElementById('cus_template');
+        if (selectTemplate) {
+            selectTemplate.innerHTML = '<option value="">Selecione um template ou preencha manualmente</option>';
+            if (templates.length > 0) {
+                templates.forEach(template => {
+                    const option = document.createElement('option');
+                    option.value = template.id;
+                    option.textContent = template.nome;
+                    selectTemplate.appendChild(option);
+                });
+            }
+        }
+    } catch (error) {
+        console.log('Erro ao carregar templates de custos:', error);
+    }
+}
+
 function abrirModalInvestimento() {
     abrirModal(`
         <h3 class="text-lg font-semibold mb-4">Novo Investimento</h3>
         <form id="formInv" class="space-y-3">
+            <div>
+                <label class="form-label">Template</label>
+                <select id="inv_template" class="form-input">
+                    <option value="">Selecione um template ou preencha manualmente</option>
+                </select>
+            </div>
             <div>
                 <label class="form-label">Instituição</label>
                 <input type="text" id="inv_inst" class="form-input" required>
@@ -2879,6 +4240,19 @@ function abrirModalInvestimento() {
         configurarMascaraPercentual(rendimentoInput);
     }
     
+    // Carregar templates de investimentos
+    carregarTemplatesInvestimento();
+    
+    // Event listener para seleção de template
+    const templateSelect = document.getElementById('inv_template');
+    if (templateSelect) {
+        templateSelect.addEventListener('change', function() {
+            if (this.value) {
+                preencherFormularioComTemplate('investimentos', this.value);
+            }
+        });
+    }
+    
     const form = document.getElementById('formInv');
     if (form) {
         form.addEventListener('submit', async (e) => {
@@ -2913,9 +4287,33 @@ function abrirModalInvestimento() {
     }
 }
 
-// ===== Gestão de Categorias de Receita =====
-const CATEGORIA_STORAGE_KEY = 'evoPatri_categorias_receita';
+// ===== Gestão de Categorias de Receita =====}
 
+async function carregarTemplatesInvestimento() {
+    try {
+        const response = await fetch('api/templates.php?type=investimentos');
+        const templates = await response.json();
+        
+        const selectTemplate = document.getElementById('inv_template');
+        if (selectTemplate) {
+            // Limpar opções existentes
+            selectTemplate.innerHTML = '<option value="">Selecione um template ou preencha manualmente</option>';
+            
+            if (templates.length > 0) {
+                templates.forEach(template => {
+                    const option = document.createElement('option');
+                    option.value = template.id;
+                    option.textContent = template.instituicao;
+                    selectTemplate.appendChild(option);
+                });
+            }
+        }
+    } catch (error) {
+        console.log('Erro ao carregar templates de investimentos:', error);
+    }
+}
+
+const CATEGORIA_STORAGE_KEY = 'evoPatri_categorias_receita';
 function getCategoriasReceita() {
     try {
         const raw = localStorage.getItem(CATEGORIA_STORAGE_KEY);
@@ -3286,6 +4684,12 @@ function abrirModalAtivo() {
         <h3 class="text-lg font-semibold mb-4">Novo Ativo</h3>
         <form id="formAtivo" class="space-y-3">
             <div>
+                <label class="form-label">Template</label>
+                <select id="atv_template" class="form-input">
+                    <option value="">Selecione um template ou preencha manualmente</option>
+                </select>
+            </div>
+            <div>
                 <label class="form-label">Nome</label>
                 <input type="text" id="atv_nome" class="form-input" required>
             </div>
@@ -3325,6 +4729,19 @@ function abrirModalAtivo() {
         configurarMascaraMonetaria(valorInput);
     }
     
+    // Carregar templates de ativos
+    carregarTemplatesAtivo();
+    
+    // Event listener para seleção de template
+    const templateSelect = document.getElementById('atv_template');
+    if (templateSelect) {
+        templateSelect.addEventListener('change', function() {
+            if (this.value) {
+                preencherFormularioComTemplate('ativos', this.value);
+            }
+        });
+    }
+    
     const form = document.getElementById('formAtivo');
     if (form) {
         form.addEventListener('submit', async (e) => {
@@ -3348,10 +4765,40 @@ function abrirModalAtivo() {
     }
 }
 
+async function carregarTemplatesAtivo() {
+    try {
+        const response = await fetch('api/templates.php?type=ativos');
+        const templates = await response.json();
+        
+        const selectTemplate = document.getElementById('atv_template');
+        if (selectTemplate) {
+            // Limpar opções existentes
+            selectTemplate.innerHTML = '<option value="">Selecione um template ou preencha manualmente</option>';
+            
+            if (templates.length > 0) {
+                templates.forEach(template => {
+                    const option = document.createElement('option');
+                    option.value = template.id;
+                    option.textContent = template.nome;
+                    selectTemplate.appendChild(option);
+                });
+            }
+        }
+    } catch (error) {
+        console.log('Erro ao carregar templates de ativos:', error);
+    }
+}
+
 function abrirModalPassivo() {
     abrirModal(`
         <h3 class="text-lg font-semibold mb-4">Novo Passivo</h3>
         <form id="formPassivo" class="space-y-3">
+            <div>
+                <label class="form-label">Template (opcional)</label>
+                <select id="psv_template" class="form-input">
+                    <option value="">Selecione um template ou preencha manualmente</option>
+                </select>
+            </div>
             <div>
                 <label class="form-label">Nome</label>
                 <input type="text" id="psv_nome" class="form-input" required>
@@ -3374,6 +4821,19 @@ function abrirModalPassivo() {
             </div>
         </form>
     `);
+    
+    // Carregar templates de passivos
+    carregarTemplatesPassivo();
+    
+    // Event listener para seleção de template
+    const templateSelect = document.getElementById('psv_template');
+    if (templateSelect) {
+        templateSelect.addEventListener('change', function() {
+            if (this.value) {
+                preencherFormularioComTemplate('passivos', this.value);
+            }
+        });
+    }
     
     // Adicionar event listeners para formatação em tempo real
     const valorInput = document.getElementById('psv_valor');
