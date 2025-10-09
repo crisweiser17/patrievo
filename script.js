@@ -85,6 +85,9 @@ async function inicializarApp() {
     // Configurar eventos
     configurarEventos();
     
+    // Normalizar centros de custo para remover duplicatas case-insensitive
+    normalizarCentrosCusto();
+    
     // Inicializar campo hidden de mês/ano com o valor atual
     const mesAnoElement = document.getElementById('mesAno');
     if (mesAnoElement) {
@@ -141,11 +144,12 @@ function configurarEventos() {
         });
     }
 
-    // Fechar modal
+    // Fechar modal apenas com tecla ESC (botão X já está configurado na função abrirModal)
     const modalOverlayElement = document.getElementById('modalOverlay');
     if (modalOverlayElement) {
-        modalOverlayElement.addEventListener('click', function(e) {
-            if (e.target === this) {
+        // Fechar modal com tecla ESC
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && !modalOverlayElement.classList.contains('hidden')) {
                 fecharModal();
             }
         });
@@ -401,6 +405,12 @@ function editarReceita(index) {
             .map(c => `<option value="${c}" ${receita.categoria === c ? 'selected' : ''}>${c}</option>`).join('');
     }
     
+    // Aplicar máscara monetária ao campo valor
+    const valorInput = document.getElementById('edit_rec_valor');
+    if (valorInput) {
+        configurarMascaraMonetaria(valorInput);
+    }
+    
     const form = document.getElementById('formEditarReceita');
     if (form) {
         form.addEventListener('submit', async (e) => {
@@ -408,7 +418,7 @@ function editarReceita(index) {
             const payload = {
                 nome: document.getElementById('edit_rec_nome').value,
                 categoria: document.getElementById('edit_rec_categoria').value,
-                valor: parseFloat(document.getElementById('edit_rec_valor').value || '0'),
+                valor: parseValorBrasileiro(document.getElementById('edit_rec_valor').value || '0'),
                 moeda: document.getElementById('edit_rec_moeda').value,
                 // Mantém a frequência existente no registro, sem campo na UI
                 frequencia: receita.frequencia,
@@ -497,13 +507,19 @@ function editarCusto(index) {
             .map(c => `<option value="${c}" ${(custo.centro_custo || custo.centroCusto) === c ? 'selected' : ''}>${c}</option>`).join('');
     }
     
+    // Aplicar máscara monetária ao campo valor
+    const valorInput = document.getElementById('edit_cus_valor');
+    if (valorInput) {
+        configurarMascaraMonetaria(valorInput);
+    }
+    
     const form = document.getElementById('formEditarCusto');
     if (form) {
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
             const payload = {
                 nome: document.getElementById('edit_cus_nome').value,
-                valor: parseFloat(document.getElementById('edit_cus_valor').value || '0'),
+                valor: parseValorBrasileiro(document.getElementById('edit_cus_valor').value || '0'),
                 moeda: document.getElementById('edit_cus_moeda').value,
                 centro_custo: document.getElementById('edit_cus_centro').value,
                 centroCusto: document.getElementById('edit_cus_centro').value,
@@ -596,28 +612,13 @@ function editarInvestimento(index) {
     const saldoInput = document.getElementById('edit_inv_saldo');
     const rendimentoInput = document.getElementById('edit_inv_rendimento');
     
+    // Configura máscara monetária para o campo saldo
     if (saldoInput) {
-        saldoInput.addEventListener('input', function(e) {
-            const valor = parseValorBrasileiro(e.target.value);
-            e.target.value = formatarValorInput(valor);
-        });
-        
-        saldoInput.addEventListener('blur', function(e) {
-            const valor = parseValorBrasileiro(e.target.value);
-            e.target.value = formatarValorInput(valor);
-        });
+        configurarMascaraMonetaria(saldoInput);
     }
     
     if (rendimentoInput) {
-        rendimentoInput.addEventListener('input', function(e) {
-            const valor = parseFloat(e.target.value.replace(',', '.')) || 0;
-            e.target.value = formatarPercentualInput(valor);
-        });
-        
-        rendimentoInput.addEventListener('blur', function(e) {
-            const valor = parseFloat(e.target.value.replace(',', '.')) || 0;
-            e.target.value = formatarPercentualInput(valor);
-        });
+        configurarMascaraPercentual(rendimentoInput);
     }
     
     const form = document.getElementById('formEditarInvestimento');
@@ -703,16 +704,9 @@ function editarAtivo(index) {
     // Adicionar event listeners para formatação em tempo real
     const valorInput = document.getElementById('edit_atv_valor');
     
+    // Configura máscara monetária para o campo valor
     if (valorInput) {
-        valorInput.addEventListener('input', function(e) {
-            const valor = parseValorBrasileiro(e.target.value);
-            e.target.value = formatarValorInput(valor);
-        });
-        
-        valorInput.addEventListener('blur', function(e) {
-            const valor = parseValorBrasileiro(e.target.value);
-            e.target.value = formatarValorInput(valor);
-        });
+        configurarMascaraMonetaria(valorInput);
     }
     
     const form = document.getElementById('formEditarAtivo');
@@ -788,16 +782,9 @@ function editarPassivo(index) {
     // Adicionar event listeners para formatação em tempo real
     const valorInput = document.getElementById('edit_psv_valor');
     
+    // Configura máscara monetária para o campo valor
     if (valorInput) {
-        valorInput.addEventListener('input', function(e) {
-            const valor = parseValorBrasileiro(e.target.value);
-            e.target.value = formatarValorInput(valor);
-        });
-        
-        valorInput.addEventListener('blur', function(e) {
-            const valor = parseValorBrasileiro(e.target.value);
-            e.target.value = formatarValorInput(valor);
-        });
+        configurarMascaraMonetaria(valorInput);
     }
     
     const form = document.getElementById('formEditarPassivo');
@@ -1176,7 +1163,7 @@ function atualizarReceitas() {
         `;
     });
     
-    container.innerHTML = html;
+    container.innerHTML = `<div class="two-column-grid">${html}</div>`;
     totalElement.textContent = formatarMoeda(total, 'BRL');
 }
 
@@ -1223,7 +1210,7 @@ function atualizarCustos() {
         `;
     });
     
-    container.innerHTML = html;
+    container.innerHTML = `<div class="two-column-grid">${html}</div>`;
     totalElement.textContent = formatarMoeda(total, 'BRL');
 }
 
@@ -1232,7 +1219,7 @@ function atualizarInvestimentos() {
     const container = document.getElementById('listaInvestimentos');
     
     if (estado.investimentos.length === 0) {
-        container.innerHTML = '<tr><td colspan="7" class="px-4 py-8 text-center text-gray-500">Nenhum investimento cadastrado</td></tr>';
+        container.innerHTML = '<p class="text-gray-500 text-center py-4">Nenhum investimento cadastrado</p>';
         atualizarTotaisInvestimentos();
         return;
     }
@@ -1244,37 +1231,50 @@ function atualizarInvestimentos() {
         const rendimentoValor = saldoBRL * (investimento.rendimentoPercentual / 100);
         
         html += `
-            <tr class="border-b hover:bg-gray-50">
-                <td class="px-4 py-3">
-                    <div>${investimento.instituicao}</div>
-                    <div class="text-xs text-gray-500 mt-1">Mês de referência: ${formatarMesAno(investimento.mes_ano || estado.mesAno)}</div>
-                </td>
-                <td class="px-4 py-3 text-right">
-                    ${formatarMoeda(saldoBRL, 'BRL')}
-                    ${investimento.moeda === 'USD' ? '<div class="text-xs text-gray-400">(convertido)</div>' : ''}
-                </td>
-                <td class="px-4 py-3 text-right">
-                    ${formatarMoeda(saldoUSD, 'USD')}
-                    ${investimento.moeda === 'USD' ? '<div class="text-xs text-gray-400">(original)</div>' : '<div class="text-xs text-gray-400">(convertido)</div>'}
-                </td>
-                <td class="px-4 py-3 text-right">${investimento.rendimentoPercentual.toFixed(2)}%</td>
-                <td class="px-4 py-3 text-right">${formatarMoeda(rendimentoValor, 'BRL')}</td>
-                <td class="px-4 py-3">
+            <div class="investment-card fade-in">
+                <div class="flex justify-between items-start mb-3">
+                    <div>
+                        <h4 class="font-semibold text-lg">${investimento.instituicao}</h4>
+                        <div class="text-xs text-gray-500 mt-1">Mês de referência: ${formatarMesAno(investimento.mes_ano || estado.mesAno)}</div>
+                    </div>
                     <span class="badge-${investimento.liquidez} text-xs px-2 py-1 rounded">
                         ${investimento.liquidez}
                     </span>
-                </td>
-                <td class="px-4 py-3">
-                    <div class="space-x-2">
-                        <button class="text-blue-600 hover:text-blue-800 text-sm" onclick="editarInvestimento(${index})">Editar</button>
-                        <button class="text-red-600 hover:text-red-800 text-sm" onclick="excluirInvestimento(${index})">Excluir</button>
+                </div>
+                
+                <div class="grid grid-cols-2 gap-4 mb-3">
+                    <div>
+                        <div class="text-sm text-gray-600">Saldo BRL</div>
+                        <div class="font-semibold text-green-600">${formatarMoeda(saldoBRL, 'BRL')}</div>
+                        ${investimento.moeda === 'USD' ? '<div class="text-xs text-gray-400">(convertido)</div>' : ''}
                     </div>
-                </td>
-            </tr>
+                    <div>
+                        <div class="text-sm text-gray-600">Saldo USD</div>
+                        <div class="font-semibold text-blue-600">${formatarMoeda(saldoUSD, 'USD')}</div>
+                        ${investimento.moeda === 'USD' ? '<div class="text-xs text-gray-400">(original)</div>' : '<div class="text-xs text-gray-400">(convertido)</div>'}
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-2 gap-4 mb-3">
+                    <div>
+                        <div class="text-sm text-gray-600">Rendimento (%)</div>
+                        <div class="font-semibold">${investimento.rendimentoPercentual.toFixed(2)}%</div>
+                    </div>
+                    <div>
+                        <div class="text-sm text-gray-600">Rendimento (R$)</div>
+                        <div class="font-semibold text-purple-600">${formatarMoeda(rendimentoValor, 'BRL')}</div>
+                    </div>
+                </div>
+                
+                <div class="flex justify-end space-x-2 pt-2 border-t">
+                    <button class="text-blue-600 hover:text-blue-800 text-sm" onclick="editarInvestimento(${index})">Editar</button>
+                    <button class="text-red-600 hover:text-red-800 text-sm" onclick="excluirInvestimento(${index})">Excluir</button>
+                </div>
+            </div>
         `;
     });
     
-    container.innerHTML = html;
+    container.innerHTML = `<div class="investment-cards-grid">${html}</div>`;
     atualizarTotaisInvestimentos();
 }
 
@@ -1351,7 +1351,7 @@ function atualizarAtivos() {
         `;
     });
     
-    container.innerHTML = html;
+    container.innerHTML = `<div class="two-column-grid">${html}</div>`;
     totalElement.textContent = formatarMoeda(total, 'BRL');
 }
 
@@ -1391,7 +1391,7 @@ function atualizarPassivos() {
         `;
     });
     
-    container.innerHTML = html;
+    container.innerHTML = `<div class="two-column-grid">${html}</div>`;
     totalElement.textContent = formatarMoeda(total, 'BRL');
 }
 
@@ -1529,11 +1529,16 @@ function atualizarCardResumo(indicadores) {
     const insightsCustosTotaisEl = document.getElementById('insightsCustosTotais');
     if (insightsCustosTotaisEl) insightsCustosTotaisEl.textContent = formatarMoeda(indicadores.custo_total, 'BRL');
 
-    // Breakdown de custos
+    // Breakdown de custos - Exibir apenas os 3 maiores centros de custo
     const breakdownEl = document.getElementById('breakdownCustos');
     if (breakdownEl) {
+        // Ordenar centros de custo por valor decrescente e pegar os 3 maiores
+        const custosOrdenados = Object.entries(indicadores.custos_por_centro || {})
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 3);
+        
         let custosHtml = '';
-        for (const [centro, valor] of Object.entries(indicadores.custos_por_centro || {})) {
+        for (const [centro, valor] of custosOrdenados) {
             custosHtml += `<div class="flex justify-between text-sm"><span>${centro}</span><span>${formatarMoeda(valor, 'BRL')}</span></div>`;
         }
         breakdownEl.innerHTML = custosHtml;
@@ -1543,6 +1548,14 @@ function atualizarCardResumo(indicadores) {
     const investimentoTotalEl = document.getElementById('investimentosTotal');
     const investimentoTotalValor = indicadores.investimento_total || calcularTotalInvestimentos();
     if (investimentoTotalEl) investimentoTotalEl.textContent = formatarMoeda(investimentoTotalValor, 'BRL');
+
+    // Atualizar Ativos Total
+    const ativosTotalEl = document.getElementById('ativosTotal');
+    if (ativosTotalEl) ativosTotalEl.textContent = formatarMoeda(indicadores.ativo_total || 0, 'BRL');
+
+    // Atualizar Passivos Total
+    const passivosTotalEl = document.getElementById('passivosTotal');
+    if (passivosTotalEl) passivosTotalEl.textContent = formatarMoeda(indicadores.passivo_total || 0, 'BRL');
 
     const patrimonioTotalEl = document.getElementById('patrimonioTotal');
     const patrimonioValor = (indicadores.ativo_total || 0) + investimentoTotalValor - (indicadores.passivo_total || 0);
@@ -1621,7 +1634,21 @@ function formatarMoeda(valor, moeda = 'BRL') {
 function formatarValorInput(valor) {
     if (valor === null || valor === undefined || valor === '') return '';
     
-    const numero = typeof valor === 'string' ? parseFloat(valor.replace(/[^\d,.-]/g, '').replace(',', '.')) : valor;
+    // Se for string, limpa e converte para número
+    let numero;
+    if (typeof valor === 'string') {
+        // Remove tudo exceto dígitos, vírgula, ponto e hífen
+        const valorLimpo = valor.replace(/[^\d,.-]/g, '');
+        // Se tem vírgula, trata como decimal brasileiro
+        if (valorLimpo.includes(',')) {
+            numero = parseFloat(valorLimpo.replace(/\.(?=\d{3}(\D|$))/g, '').replace(',', '.'));
+        } else {
+            numero = parseFloat(valorLimpo);
+        }
+    } else {
+        numero = valor;
+    }
+    
     if (isNaN(numero)) return '';
     
     return new Intl.NumberFormat('pt-BR', {
@@ -1636,8 +1663,8 @@ function parseValorBrasileiro(valorFormatado) {
     
     // Remove pontos de milhares e substitui vírgula por ponto
     const valorLimpo = valorFormatado.toString()
-        .replace(/[^\d,-]/g, '') // Remove tudo exceto dígitos, vírgula e hífen
-        .replace(/\.(?=\d{3})/g, '') // Remove pontos de milhares
+        .replace(/[^\d,.-]/g, '') // Remove tudo exceto dígitos, vírgula, ponto e hífen
+        .replace(/\.(?=\d{3}(\D|$))/g, '') // Remove pontos de milhares (seguidos por 3 dígitos)
         .replace(',', '.'); // Substitui vírgula decimal por ponto
     
     return parseFloat(valorLimpo) || 0;
@@ -1651,6 +1678,108 @@ function formatarPercentualInput(valor) {
     if (isNaN(numero)) return '';
     
     return numero.toFixed(2).replace('.', ',');
+}
+
+// Função auxiliar para configurar máscara percentual em inputs
+function configurarMascaraPercentual(input) {
+    if (!input) return;
+    
+    // Remove event listeners anteriores para evitar duplicação
+    const newInput = input.cloneNode(true);
+    input.parentNode.replaceChild(newInput, input);
+    
+    // Permite apenas números, vírgula, ponto e teclas de controle
+    newInput.addEventListener('keydown', function(e) {
+        const allowedKeys = [
+            'Backspace', 'Delete', 'Tab', 'Escape', 'Enter',
+            'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown',
+            'Home', 'End'
+        ];
+        
+        const isCtrlCmd = e.ctrlKey || e.metaKey;
+        const isNumber = (e.key >= '0' && e.key <= '9');
+        const isCommaOrDot = (e.key === ',' || e.key === '.');
+        
+        if (allowedKeys.includes(e.key) || isCtrlCmd || isNumber || isCommaOrDot) {
+            return;
+        }
+        
+        e.preventDefault();
+    });
+    
+    // Formatar apenas no blur para não interferir na digitação
+    newInput.addEventListener('blur', function(e) {
+        if (e.target.value.trim() === '') return;
+        
+        const valor = parseFloat(e.target.value.replace(',', '.')) || 0;
+        e.target.value = formatarPercentualInput(valor);
+    });
+    
+    return newInput;
+}
+
+// Função auxiliar para configurar máscara monetária em inputs
+function configurarMascaraMonetaria(input) {
+    if (!input) return;
+    
+    // Remove event listeners anteriores para evitar duplicação
+    const newInput = input.cloneNode(true);
+    input.parentNode.replaceChild(newInput, input);
+    
+    // Permite apenas números e teclas de controle
+    newInput.addEventListener('keydown', function(e) {
+        // Permite: backspace, delete, tab, escape, enter, setas
+        if ([8, 9, 27, 13, 46, 37, 38, 39, 40].indexOf(e.keyCode) !== -1 ||
+            // Permite: Ctrl+A, Ctrl+C, Ctrl+V, Ctrl+X, Ctrl+Z
+            (e.ctrlKey && [65, 67, 86, 88, 90].indexOf(e.keyCode) !== -1) ||
+            // Permite: home, end
+            (e.keyCode >= 35 && e.keyCode <= 36)) {
+            return;
+        }
+        
+        // Permite apenas números (0-9)
+        const isNumber = (e.keyCode >= 48 && e.keyCode <= 57) || (e.keyCode >= 96 && e.keyCode <= 105);
+        
+        if (!isNumber) {
+            e.preventDefault();
+        }
+    });
+    
+    newInput.addEventListener('input', function(e) {
+        let valor = e.target.value;
+        
+        // Remove tudo que não é número
+        valor = valor.replace(/\D/g, '');
+        
+        // Se não há valor, limpa o campo
+        if (!valor) {
+            e.target.value = '';
+            return;
+        }
+        
+        // Converte para número e divide por 100 para ter centavos
+        const numero = parseInt(valor) / 100;
+        
+        // Formata no padrão brasileiro
+        const valorFormatado = numero.toLocaleString('pt-BR', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        });
+        
+        e.target.value = valorFormatado;
+    });
+    
+    newInput.addEventListener('blur', function(e) {
+        // Garante que sempre termine com ,00 se não tiver decimais
+        let valor = e.target.value;
+        if (valor && !valor.includes(',')) {
+            valor += ',00';
+            e.target.value = valor;
+        }
+    });
+    
+    // Retorna a nova referência do input
+    return newInput;
 }
 
 // Função para formatar o mês em português
@@ -2242,8 +2371,37 @@ function abrirModal(conteudoHTML) {
     const overlay = document.getElementById('modalOverlay');
     const content = document.getElementById('modalContent');
     if (!overlay || !content) return;
+    
     overlay.classList.remove('hidden');
-    content.innerHTML = conteudoHTML;
+    
+    // Adiciona botão X no canto superior direito
+    const modalComBotaoFechar = `
+        <div class="relative">
+            <button type="button" onclick="fecharModal()" class="absolute top-0 right-0 -mt-2 -mr-2 bg-gray-500 hover:bg-gray-700 text-white rounded-full w-8 h-8 flex items-center justify-center text-lg font-bold z-10 transition-colors">
+                ×
+            </button>
+            ${conteudoHTML}
+        </div>
+    `;
+    
+    content.innerHTML = modalComBotaoFechar;
+    
+    // Remove event listeners anteriores para evitar acúmulo
+    const newContent = content.cloneNode(true);
+    content.parentNode.replaceChild(newContent, content);
+    
+    // Previne fechamento ao clicar no conteúdo do modal
+    newContent.addEventListener('click', function(e) {
+        e.stopPropagation();
+    });
+    
+    // Foca no primeiro input do modal se existir
+    setTimeout(() => {
+        const firstInput = newContent.querySelector('input, select, textarea');
+        if (firstInput) {
+            firstInput.focus();
+        }
+    }, 100);
 }
 
 function fecharModal() {
@@ -2539,6 +2697,13 @@ function abrirModalReceita() {
         selectCat.innerHTML = (categorias || ['salário/emprego','aluguel/locação','freelancer','outros'])
             .map(c => `<option>${c}</option>`).join('');
     }
+    
+    // Configurar máscara monetária para o campo valor
+    const valorInput = document.getElementById('rec_valor');
+    if (valorInput) {
+        configurarMascaraMonetaria(valorInput);
+    }
+    
     const form = document.getElementById('formReceita');
     if (form) {
         form.addEventListener('submit', async (e) => {
@@ -2546,7 +2711,7 @@ function abrirModalReceita() {
             const payload = {
                 nome: document.getElementById('rec_nome').value,
                 categoria: document.getElementById('rec_categoria').value,
-                valor: parseFloat(document.getElementById('rec_valor').value || '0'),
+                valor: parseValorBrasileiro(document.getElementById('rec_valor').value || '0'),
                 moeda: document.getElementById('rec_moeda').value,
                 // Frequência fixa por enquanto
                 frequencia: 'mensal',
@@ -2615,13 +2780,19 @@ function abrirModalCusto() {
             .map(c => `<option>${c}</option>`).join('');
     }
     
+    // Configurar máscara monetária para o campo valor
+    const valorInput = document.getElementById('cus_valor');
+    if (valorInput) {
+        configurarMascaraMonetaria(valorInput);
+    }
+    
     const form = document.getElementById('formCusto');
     if (form) {
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
             const payload = {
                 nome: document.getElementById('cus_nome').value,
-                valor: parseFloat(document.getElementById('cus_valor').value || '0'),
+                valor: parseValorBrasileiro(document.getElementById('cus_valor').value || '0'),
                 moeda: document.getElementById('cus_moeda').value,
                 // Enviar ambos formatos para compatibilidade com diferentes endpoints
                 centro_custo: document.getElementById('cus_centro').value,
@@ -2701,28 +2872,11 @@ function abrirModalInvestimento() {
     const saldoInput = document.getElementById('inv_saldo');
     const rendimentoInput = document.getElementById('inv_rend');
     
-    if (saldoInput) {
-        saldoInput.addEventListener('input', function(e) {
-            const valor = parseValorBrasileiro(e.target.value);
-            e.target.value = formatarValorInput(valor);
-        });
-        
-        saldoInput.addEventListener('blur', function(e) {
-            const valor = parseValorBrasileiro(e.target.value);
-            e.target.value = formatarValorInput(valor);
-        });
-    }
+    // Configura máscara monetária para o campo saldo
+    configurarMascaraMonetaria(saldoInput);
     
     if (rendimentoInput) {
-        rendimentoInput.addEventListener('input', function(e) {
-            const valor = parseFloat(e.target.value.replace(',', '.')) || 0;
-            e.target.value = formatarPercentualInput(valor);
-        });
-        
-        rendimentoInput.addEventListener('blur', function(e) {
-            const valor = parseFloat(e.target.value.replace(',', '.')) || 0;
-            e.target.value = formatarPercentualInput(valor);
-        });
+        configurarMascaraPercentual(rendimentoInput);
     }
     
     const form = document.getElementById('formInv');
@@ -2919,6 +3073,31 @@ function setCentrosCusto(centros) {
     localStorage.setItem(CENTRO_CUSTO_STORAGE_KEY, JSON.stringify(centros));
 }
 
+// Função para normalizar centros de custo e remover duplicatas case-insensitive
+function normalizarCentrosCusto() {
+    const centros = getCentrosCusto();
+    const centrosNormalizados = [];
+    const centrosLowerCase = new Set();
+    
+    // Manter apenas o primeiro centro de cada grupo case-insensitive
+    centros.forEach(centro => {
+        const centroLower = centro.toLowerCase();
+        if (!centrosLowerCase.has(centroLower)) {
+            centrosLowerCase.add(centroLower);
+            centrosNormalizados.push(centro);
+        }
+    });
+    
+    // Se houve mudanças, atualizar o localStorage
+    if (centrosNormalizados.length !== centros.length) {
+        setCentrosCusto(centrosNormalizados);
+        console.log(`Centros de custo normalizados: ${centros.length} → ${centrosNormalizados.length}`);
+        return true; // Indica que houve mudanças
+    }
+    
+    return false; // Não houve mudanças
+}
+
 async function renomearCentroCusto(antigo, novo) {
     // Atualizar custos existentes
     if (estado.custos && estado.custos.length > 0) {
@@ -3027,11 +3206,15 @@ function abrirModalCentrosCusto() {
             const nome = document.getElementById('novoCentro').value.trim();
             if (!nome) return;
             const lista = getCentrosCusto();
-            if (!lista.includes(nome)) {
+            // Verificação case-insensitive para evitar duplicatas
+            const nomeExiste = lista.some(centro => centro.toLowerCase() === nome.toLowerCase());
+            if (!nomeExiste) {
                 lista.push(nome);
                 setCentrosCusto(lista);
+                abrirModalCentrosCusto();
+            } else {
+                alert('Este centro de custo já existe (não diferencia maiúsculas/minúsculas)!');
             }
-            abrirModalCentrosCusto();
         });
     }
 }
@@ -3041,12 +3224,14 @@ window.adicionarCentro = function() {
     const nome = input.value.trim();
     if (nome) {
         const centros = getCentrosCusto();
-        if (!centros.includes(nome)) {
+        // Verificação case-insensitive para evitar duplicatas
+        const nomeExiste = centros.some(centro => centro.toLowerCase() === nome.toLowerCase());
+        if (!nomeExiste) {
             centros.push(nome);
             setCentrosCusto(centros);
             abrirModalCentrosCusto(); // Reabrir para atualizar a lista
         } else {
-            alert('Este centro de custo já existe!');
+            alert('Este centro de custo já existe (não diferencia maiúsculas/minúsculas)!');
         }
     }
 };
@@ -3135,16 +3320,9 @@ function abrirModalAtivo() {
     // Adicionar event listeners para formatação em tempo real
     const valorInput = document.getElementById('atv_valor');
     
+    // Configura máscara monetária para o campo valor
     if (valorInput) {
-        valorInput.addEventListener('input', function(e) {
-            const valor = parseValorBrasileiro(e.target.value);
-            e.target.value = formatarValorInput(valor);
-        });
-        
-        valorInput.addEventListener('blur', function(e) {
-            const valor = parseValorBrasileiro(e.target.value);
-            e.target.value = formatarValorInput(valor);
-        });
+        configurarMascaraMonetaria(valorInput);
     }
     
     const form = document.getElementById('formAtivo');

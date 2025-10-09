@@ -13,40 +13,41 @@ $method = $_SERVER['REQUEST_METHOD'];
 
 if($method === 'GET') {
     $mes_ano = $_GET['mes_ano'] ?? date('Y-m');
+    $cotacao = isset($_GET['cotacao']) ? floatval($_GET['cotacao']) : 5.0; // USD->BRL
     
     // Buscar dados de todas as tabelas
     $dados = [];
     
     // Receitas
-    $query = "SELECT * FROM receitas WHERE mes_ano = :mes_ano";
+    $query = "SELECT * FROM receitas WHERE TRIM(mes_ano) = :mes_ano";
     $stmt = $db->prepare($query);
     $stmt->bindParam(':mes_ano', $mes_ano);
     $stmt->execute();
     $dados['receitas'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
     // Custos
-    $query = "SELECT * FROM custos WHERE mes_ano = :mes_ano";
+    $query = "SELECT * FROM custos WHERE TRIM(mes_ano) = :mes_ano";
     $stmt = $db->prepare($query);
     $stmt->bindParam(':mes_ano', $mes_ano);
     $stmt->execute();
     $dados['custos'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
     // Investimentos
-    $query = "SELECT * FROM investimentos WHERE mes_ano = :mes_ano";
+    $query = "SELECT * FROM investimentos WHERE TRIM(mes_ano) = :mes_ano";
     $stmt = $db->prepare($query);
     $stmt->bindParam(':mes_ano', $mes_ano);
     $stmt->execute();
     $dados['investimentos'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
     // Ativos
-    $query = "SELECT * FROM ativos WHERE mes_ano = :mes_ano";
+    $query = "SELECT * FROM ativos WHERE TRIM(mes_ano) = :mes_ano";
     $stmt = $db->prepare($query);
     $stmt->bindParam(':mes_ano', $mes_ano);
     $stmt->execute();
     $dados['ativos'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
     // Passivos
-    $query = "SELECT * FROM passivos WHERE mes_ano = :mes_ano";
+    $query = "SELECT * FROM passivos WHERE TRIM(mes_ano) = :mes_ano";
     $stmt = $db->prepare($query);
     $stmt->bindParam(':mes_ano', $mes_ano);
     $stmt->execute();
@@ -58,7 +59,7 @@ if($method === 'GET') {
     echo json_encode(['dados' => $dados, 'indicadores' => $indicadores]);
 }
 
-function calcularIndicadores($dados) {
+function calcularIndicadores($dados, $cotacao = 5.0) {
     $indicadores = [];
     
     // Rendas
@@ -115,23 +116,27 @@ function calcularIndicadores($dados) {
     foreach($dados['investimentos'] as $investimento) {
         $saldo = (float)$investimento['saldo'];
         $rendimento_percentual = (float)$investimento['rendimento_percentual'];
-        $rendimento_valor = $saldo * ($rendimento_percentual / 100);
+        $moeda = isset($investimento['moeda']) ? $investimento['moeda'] : 'BRL';
         
-        if($investimento['moeda'] === 'BRL') {
+        // Converter rendimentos e saldos em USD para BRL
+        $saldo_brl = ($moeda === 'USD') ? $saldo * $cotacao : $saldo;
+        $rendimento_valor_brl = $saldo_brl * ($rendimento_percentual / 100);
+        
+        if($moeda === 'BRL') {
             $investimento_total_brl += $saldo;
         } else {
-            $investimento_total_usd += $saldo;
+            $investimento_total_usd += $saldo; // manter valor original em USD
         }
         
-        $total_investimentos += $saldo;
-        $rendimento_total += $rendimento_valor;
+        $total_investimentos += $saldo_brl; // total consolidado em BRL
+        $rendimento_total += $rendimento_valor_brl; // rendimento total em BRL
         $soma_percentuais += $rendimento_percentual;
     }
     
     $indicadores['investimento_total_brl'] = $investimento_total_brl;
     $indicadores['investimento_total_usd'] = $investimento_total_usd;
-    $indicadores['investimento_total'] = $total_investimentos;
-    $indicadores['rendimento_total'] = $rendimento_total;
+    $indicadores['investimento_total'] = $total_investimentos; // em BRL
+    $indicadores['rendimento_total'] = $rendimento_total; // em BRL
     $indicadores['media_percentual_rendimento'] = count($dados['investimentos']) > 0 ? $soma_percentuais / count($dados['investimentos']) : 0;
     
     // Ativos e Passivos

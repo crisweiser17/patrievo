@@ -39,7 +39,19 @@
         <div class="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-6">
             <!-- Card Renda Total -->
             <div class="bg-white p-6 rounded-lg shadow">
-                <h3 class="text-lg font-semibold text-gray-800 mb-2">💰 Renda Total</h3>
+                <h3 class="text-lg font-semibold text-gray-800 mb-2">💰 Renda Total 
+                    <span class="tooltip-container">
+                        <span class="tooltip-icon text-xs text-gray-500">ⓘ</span>
+                        <span class="tooltip-text">
+                            <strong>Renda Total</strong><br>
+                            Soma de todas as receitas do mês, incluindo:<br>
+                            • Salários<br>
+                            • Rendas de investimentos<br>
+                            • Outras fontes<br><br>
+                            <strong>Cálculo:</strong> ∑ Receitas
+                        </span>
+                    </span>
+                </h3>
                 <div class="text-2xl font-bold text-green-600" id="rendaTotal">R$ 0,00</div>
                 <div class="text-sm text-gray-600 mt-2">
                     <div>Alta confiabilidade: <span id="rendaAltaConf">R$ 0,00</span></div>
@@ -50,14 +62,33 @@
 
             <!-- Card Custos -->
             <div class="bg-white p-6 rounded-lg shadow">
-                <h3 class="text-lg font-semibold text-gray-800 mb-2">💸 Custos Totais</h3>
+                <h3 class="text-lg font-semibold text-gray-800 mb-2">💸 Custos Totais 
+                    <span class="tooltip-container">
+                        <span class="tooltip-icon text-xs text-gray-500">ⓘ</span>
+                        <span class="tooltip-text">
+                            <strong>Custos Totais</strong><br>
+                            Soma de todos os gastos do mês, organizados por centros de custo.<br><br>
+                            <strong>Cálculo:</strong> ∑ Custos
+                        </span>
+                    </span>
+                </h3>
                 <div class="text-2xl font-bold text-red-600" id="custosTotais">R$ 0,00</div>
                 <div class="text-sm text-gray-600 mt-2" id="breakdownCustos"></div>
             </div>
 
             <!-- Card Patrimônio -->
             <div class="bg-white p-6 rounded-lg shadow">
-                <h3 class="text-lg font-semibold text-gray-800 mb-2">🏦 Patrimônio</h3>
+                <h3 class="text-lg font-semibold text-gray-800 mb-2">🏦 Patrimônio 
+                    <span class="tooltip-container">
+                        <span class="tooltip-icon text-xs text-gray-500">ⓘ</span>
+                        <span class="tooltip-text">
+                            <strong>Patrimônio Líquido Total</strong><br>
+                            Soma dos ativos e investimentos menos os passivos.<br><br>
+                            <strong>Cálculo:</strong><br>
+                            Ativos + Investimentos - Passivos
+                        </span>
+                    </span>
+                </h3>
                 <div class="text-2xl font-bold text-blue-600" id="patrimonioTotal">R$ 0,00</div>
                 <div class="text-sm text-gray-600 mt-2">
                     <div>Investimentos: <span id="investimentosTotal">R$ 0,00</span></div>
@@ -68,8 +99,21 @@
 
             <!-- Card Insights -->
             <div class="bg-white p-6 rounded-lg shadow">
-                <h3 class="text-lg font-semibold text-gray-800 mb-2">🧠 Insights</h3>
-                <div class="space-y-2 text-sm text-gray-700">
+                <h3 class="text-lg font-semibold text-gray-800 mb-2">🧠 Insights 
+                    <span class="tooltip-container">
+                        <span class="tooltip-icon text-xs text-gray-500">ⓘ</span>
+                        <span class="tooltip-text">
+                            <strong>Insights Financeiros</strong><br>
+                            Resumo dos principais indicadores do mês:<br>
+                            • Rendas totais<br>
+                            • Custos totais<br>
+                            • Renda disponível<br>
+                            • Métricas de independência financeira
+                        </span>
+                    </span> 
+                    <a href="#" id="linkEvolucaoFinanceira" class="ml-2 text-blue-600 hover:underline" title="Abrir Evolução Financeira">📈</a>
+                </h3>
+                <div class="text-sm text-gray-600">
                     <div>💰 Renda Total: <span id="insightsRendaTotal">R$ 0,00</span></div>
                     <div>💸 Custos Totais: <span id="insightsCustosTotais">R$ 0,00</span></div>
                     <div>🟢 Renda Disponível: <span id="insightsRendaDisponivel">R$ 0,00</span></div>
@@ -175,23 +219,7 @@
                             </button>
                         </div>
                     </div>
-                    <div class="overflow-x-auto">
-                        <table class="min-w-full bg-white">
-                            <thead>
-                                <tr class="bg-gray-50">
-                                    <th class="px-4 py-2 text-left">Instituição</th>
-                                    <th class="px-4 py-2 text-right">Saldo BRL</th>
-                                    <th class="px-4 py-2 text-right">Saldo USD</th>
-                                    <th class="px-4 py-2 text-right">Rendimento (%)</th>
-                                    <th class="px-4 py-2 text-right">Rendimento (R$)</th>
-                                    <th class="px-4 py-2 text-left">Liquidez</th>
-                                    <th class="px-4 py-2 text-left">Ações</th>
-                                </tr>
-                            </thead>
-                            <tbody id="listaInvestimentos">
-                            </tbody>
-                        </table>
-                    </div>
+                    <div id="listaInvestimentos"></div>
                     <div class="mt-4 pt-4 border-t grid grid-cols-2 gap-4">
                         <div>
                             <div class="text-sm text-gray-600">Soma Saldos BRL: <span id="somaSaldosBRL" class="font-semibold">R$ 0,00</span></div>
@@ -274,8 +302,8 @@
     </div>
 
     <!-- Modais -->
-    <div id="modalOverlay" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50">
-        <div id="modalContent" class="bg-white rounded-lg p-6 max-w-md mx-auto mt-20">
+    <div id="modalOverlay" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-start sm:items-center justify-center p-4">
+        <div id="modalContent" class="bg-white rounded-lg p-4 sm:p-5 w-full max-w-lg sm:max-w-xl lg:max-w-2xl max-h-[80vh] overflow-y-auto">
             <!-- Conteúdo dos modais será injetado aqui -->
         </div>
     </div>
